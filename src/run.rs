@@ -18,15 +18,22 @@ pub enum RunError {
     SerdeError(#[from] serde_json::Error),
 }
 
-pub fn run_all<'a, E: RunnableExperiment<'a>>(experiments: &[E]) -> Result<(), RunError> {
-    let exp_path = create_experiments_dir(&std::env::current_dir()?)?;
+pub struct RunConfig {
+    pub output_dir: PathBuf,
+}
+
+pub fn run<'a, E: RunnableExperiment<'a>>(
+    experiments: &[E],
+    config: &RunConfig,
+) -> Result<(), RunError> {
+    let exp_path = create_experiments_dir(&config.output_dir)?;
     for e in experiments {
-        run(e, &exp_path)?
+        run_single(e, &exp_path)?
     }
     Ok(())
 }
 
-pub fn run<'a, E: RunnableExperiment<'a>>(experiment: &E, dir: &Path) -> Result<(), RunError> {
+fn run_single<'a, E: RunnableExperiment<'a>>(experiment: &E, dir: &Path) -> Result<(), RunError> {
     let experiment_dir = create_experiment_dir(dir, experiment.name())?;
     collect_environment_data(&experiment_dir);
 

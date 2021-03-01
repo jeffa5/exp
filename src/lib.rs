@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 mod analyse;
 mod run;
 
-pub use run::{run, run_all};
+pub use run::{run, RunConfig};
 
 pub trait ExperimentConfiguration<'a>: Serialize + Deserialize<'a> {
     fn repeats(&self) -> u32;

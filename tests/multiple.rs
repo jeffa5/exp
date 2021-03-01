@@ -32,7 +32,7 @@ impl RunnableExperiment<'_> for ExpA {
         println!("prerun a")
     }
     fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
-        println!("run a")
+        println!("run a {:?}", data_dir)
     }
     fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun a")
@@ -170,5 +170,8 @@ fn multiple() {
             configurations: vec![],
         }),
     ];
-    exp::run_all(&exps).unwrap()
+    let run_config = exp::RunConfig {
+        output_dir: std::env::current_dir().unwrap(),
+    };
+    exp::run(&exps, &run_config).unwrap()
 }
