@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 mod analyse;
+pub mod docker_runner;
 mod run;
 
 pub use run::{run, RunConfig};
@@ -23,7 +24,7 @@ pub trait RunnableExperiment<'a>: NamedExperiment {
     fn run_configurations(&self) -> Vec<Self::RunConfiguration>;
 
     async fn pre_run(&self, configuration: &Self::RunConfiguration);
-    async fn run(&self, configuration: &Self::RunConfiguration, data_dir: PathBuf);
+    async fn run(&self, configuration: &Self::RunConfiguration, repeat_dir: PathBuf);
     async fn post_run(&self, configuration: &Self::RunConfiguration);
 }
 

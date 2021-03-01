@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
+use bollard::container::Config;
 use exp::{AnalysableExperiment, ExperimentConfiguration, NamedExperiment, RunnableExperiment};
 use serde::{Deserialize, Serialize};
 
@@ -33,8 +34,8 @@ impl RunnableExperiment<'_> for ExpA {
     async fn pre_run(&self, _: &Self::RunConfiguration) {
         println!("prerun a")
     }
-    async fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
-        println!("run a {:?}", data_dir)
+    async fn run(&self, _: &Self::RunConfiguration, repeat_dir: PathBuf) {
+        println!("run a {:?}", repeat_dir)
     }
     async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun a")
@@ -82,7 +83,7 @@ impl RunnableExperiment<'_> for ExpB {
     async fn pre_run(&self, _: &Self::RunConfiguration) {
         todo!()
     }
-    async fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
+    async fn run(&self, _: &Self::RunConfiguration, repeat_dir: PathBuf) {
         todo!()
     }
     async fn post_run(&self, _: &Self::RunConfiguration) {
@@ -158,8 +159,21 @@ impl RunnableExperiment<'_> for Exp {
             }
         }
     }
-    async fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
-        println!("run")
+    async fn run(&self, _: &Self::RunConfiguration, repeat_dir: PathBuf) {
+        let mut runner = exp::docker_runner::Runner::new(repeat_dir).await;
+        println!("run");
+
+        runner
+            .add_container(
+                "exp-test-1",
+                Config {
+                    image: Some("nginx:alpine".to_string()),
+                    ..Default::default()
+                },
+            )
+            .await;
+        tokio::time::sleep(Duration::from_secs(15)).await;
+        runner.finish().await
     }
     async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun")

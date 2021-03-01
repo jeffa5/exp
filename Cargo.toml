@@ -6,12 +6,12 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1.42"
+bollard = "0.10.0"
 chrono = "0.4.19"
 nix = "0.20.0"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.62"
 thiserror = "1.0.24"
 tracing = "0.1.25"
-
-[dev-dependencies]
 tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
+futures = "0.3.13"

@@ -54,7 +54,7 @@ async fn run_single<'a, E: RunnableExperiment<'a>>(
             let logs_dir = create_logs_dir(&repeat_dir)?;
             let metrics_dir = create_metrics_dir(&repeat_dir)?;
             let data_dir = create_data_dir(&repeat_dir)?;
-            experiment.run(&config, data_dir).await;
+            experiment.run(&config, repeat_dir).await;
         }
         experiment.post_run(&config).await;
     }
