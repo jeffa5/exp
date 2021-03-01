@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use async_trait::async_trait;
 use exp::{AnalysableExperiment, ExperimentConfiguration, NamedExperiment, RunnableExperiment};
 use serde::{Deserialize, Serialize};
 
@@ -22,19 +23,20 @@ impl NamedExperiment for ExpA {
     }
 }
 
+#[async_trait]
 impl RunnableExperiment<'_> for ExpA {
     type RunConfiguration = ExpAConfig;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         self.configurations.clone()
     }
-    fn pre_run(&self, _: &Self::RunConfiguration) {
+    async fn pre_run(&self, _: &Self::RunConfiguration) {
         println!("prerun a")
     }
-    fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
+    async fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
         println!("run a {:?}", data_dir)
     }
-    fn post_run(&self, _: &Self::RunConfiguration) {
+    async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun a")
     }
 }
@@ -70,19 +72,20 @@ impl NamedExperiment for ExpB {
     }
 }
 
+#[async_trait]
 impl RunnableExperiment<'_> for ExpB {
     type RunConfiguration = ExpBConfig;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         self.configurations.clone()
     }
-    fn pre_run(&self, _: &Self::RunConfiguration) {
+    async fn pre_run(&self, _: &Self::RunConfiguration) {
         todo!()
     }
-    fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
+    async fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
         todo!()
     }
-    fn post_run(&self, _: &Self::RunConfiguration) {
+    async fn post_run(&self, _: &Self::RunConfiguration) {
         todo!()
     }
 }
@@ -128,6 +131,7 @@ impl NamedExperiment for Exp {
     }
 }
 
+#[async_trait]
 impl RunnableExperiment<'_> for Exp {
     type RunConfiguration = ExpConfig;
 
@@ -136,32 +140,34 @@ impl RunnableExperiment<'_> for Exp {
             Self::A(a) => a
                 .run_configurations()
                 .into_iter()
-                .map(|c| ExpConfig::A(c))
+                .map(ExpConfig::A)
                 .collect::<Vec<_>>(),
             Self::B(b) => b
                 .run_configurations()
                 .into_iter()
-                .map(|c| ExpConfig::B(c))
+                .map(ExpConfig::B)
                 .collect::<Vec<_>>(),
         }
     }
-    fn pre_run(&self, config: &Self::RunConfiguration) {
+    async fn pre_run(&self, config: &Self::RunConfiguration) {
         match (self, config) {
-            (Self::A(a), Self::RunConfiguration::A(ac)) => a.pre_run(ac),
-            (Self::B(b), Self::RunConfiguration::B(bc)) => b.pre_run(bc),
-            _ => panic!("found mismatching experiment and configuration"),
+            (Self::A(a), ExpConfig::A(ac)) => a.pre_run(ac).await,
+            (Self::B(b), ExpConfig::B(bc)) => b.pre_run(bc).await,
+            _ => {
+                panic!("found mismatching experiment and configuration")
+            }
         }
     }
-    fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
+    async fn run(&self, _: &Self::RunConfiguration, data_dir: PathBuf) {
         println!("run")
     }
-    fn post_run(&self, _: &Self::RunConfiguration) {
+    async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun")
     }
 }
 
-#[test]
-fn multiple() {
+#[tokio::test]
+async fn multiple() {
     let exps = vec![
         Exp::A(ExpA {
             configurations: vec![ExpAConfig {}],
@@ -173,5 +179,5 @@ fn multiple() {
     let run_config = exp::RunConfig {
         output_dir: std::env::current_dir().unwrap(),
     };
-    exp::run(&exps, &run_config).unwrap()
+    exp::run(&exps, &run_config).await.unwrap()
 }

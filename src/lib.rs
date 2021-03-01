@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 mod analyse;
@@ -15,14 +16,15 @@ pub trait Experiment<'a>: RunnableExperiment<'a> + AnalysableExperiment {}
 
 impl<'a, T: RunnableExperiment<'a> + AnalysableExperiment> Experiment<'a> for T {}
 
+#[async_trait]
 pub trait RunnableExperiment<'a>: NamedExperiment {
     type RunConfiguration: ExperimentConfiguration<'a>;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration>;
 
-    fn pre_run(&self, configuration: &Self::RunConfiguration);
-    fn run(&self, configuration: &Self::RunConfiguration, data_dir: PathBuf);
-    fn post_run(&self, configuration: &Self::RunConfiguration);
+    async fn pre_run(&self, configuration: &Self::RunConfiguration);
+    async fn run(&self, configuration: &Self::RunConfiguration, data_dir: PathBuf);
+    async fn post_run(&self, configuration: &Self::RunConfiguration);
 }
 
 pub trait AnalysableExperiment: NamedExperiment {

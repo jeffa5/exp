@@ -22,18 +22,21 @@ pub struct RunConfig {
     pub output_dir: PathBuf,
 }
 
-pub fn run<'a, E: RunnableExperiment<'a>>(
+pub async fn run<'a, E: RunnableExperiment<'a>>(
     experiments: &[E],
     config: &RunConfig,
 ) -> Result<(), RunError> {
     let exp_path = create_experiments_dir(&config.output_dir)?;
     for e in experiments {
-        run_single(e, &exp_path)?
+        run_single(e, &exp_path).await?
     }
     Ok(())
 }
 
-fn run_single<'a, E: RunnableExperiment<'a>>(experiment: &E, dir: &Path) -> Result<(), RunError> {
+async fn run_single<'a, E: RunnableExperiment<'a>>(
+    experiment: &E,
+    dir: &Path,
+) -> Result<(), RunError> {
     let experiment_dir = create_experiment_dir(dir, experiment.name())?;
     collect_environment_data(&experiment_dir);
 
@@ -43,7 +46,7 @@ fn run_single<'a, E: RunnableExperiment<'a>>(experiment: &E, dir: &Path) -> Resu
         let config_dir = create_config_dir(&experiment_dir, i, width)?;
         let config_file = File::create(&config_dir.join("configuration.json"))?;
         serde_json::to_writer(config_file, &config)?;
-        experiment.pre_run(&config);
+        experiment.pre_run(&config).await;
         let repeats = config.repeats();
         let width = repeats.to_string().len();
         for i in 0..repeats {
@@ -51,9 +54,9 @@ fn run_single<'a, E: RunnableExperiment<'a>>(experiment: &E, dir: &Path) -> Resu
             let logs_dir = create_logs_dir(&repeat_dir)?;
             let metrics_dir = create_metrics_dir(&repeat_dir)?;
             let data_dir = create_data_dir(&repeat_dir)?;
-            experiment.run(&config, data_dir);
+            experiment.run(&config, data_dir).await;
         }
-        experiment.post_run(&config);
+        experiment.post_run(&config).await;
     }
     Ok(())
 }
