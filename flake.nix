@@ -20,6 +20,12 @@
         in
         rec
         {
+          packages = {
+            exp = cargoNix.workspaceMembers.exp.build;
+          };
+
+          defaultPackage = packages.exp;
+
           devShell = pkgs.mkShell {
             buildInputs = with pkgs;[
               (rust.override {
