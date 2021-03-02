@@ -266,7 +266,7 @@ impl ContainerConfig {
                 port_bindings.insert(
                     e.clone(),
                     Some(vec![PortBinding {
-                        host_ip: None,
+                        host_ip: Some("0.0.0.0".to_owned()),
                         host_port: Some(i.clone()),
                     }]),
                 );
