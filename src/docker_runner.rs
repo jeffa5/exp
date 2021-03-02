@@ -192,6 +192,10 @@ impl Runner {
             }
         }
     }
+
+    pub fn docker_client(&self) -> &Docker {
+        &self.docker
+    }
 }
 
 fn create_config_dir(parent: &Path) -> Result<PathBuf, io::Error> {
