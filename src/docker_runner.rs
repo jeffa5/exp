@@ -69,6 +69,8 @@ impl Runner {
             .await
             .expect("Failed to create container");
 
+        self.containers.push(name.to_owned());
+
         self.docker
             .start_container::<String>(&name, None)
             .await
@@ -155,8 +157,6 @@ impl Runner {
                 }
             }
         });
-
-        self.containers.push(name.to_owned());
     }
 
     pub async fn finish(self) {
