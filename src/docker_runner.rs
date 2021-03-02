@@ -93,19 +93,6 @@ impl Runner {
                     .expect("Failed to create network");
                 self.networks.push(network_name.clone());
             }
-
-            // self.docker
-            //     .connect_network(
-            //         network_name,
-            //         ConnectNetworkOptions {
-            //             container: config.name.as_str(),
-            //             endpoint_config: EndpointSettings {
-            //                 ..Default::default()
-            //             },
-            //         },
-            //     )
-            //     .await
-            //     .expect("Failed to connect container to network")
         }
 
         let _create_res = self
