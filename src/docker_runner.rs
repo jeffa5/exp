@@ -252,12 +252,14 @@ pub struct ContainerConfig {
     pub image_name: String,
     pub image_tag: String,
     pub network: Option<String>,
+    pub command: Option<Vec<String>>,
 }
 
 impl ContainerConfig {
     fn to_create_container_config(&self) -> Config<String> {
         Config {
             image: Some(format!("{}:{}", self.image_name, self.image_tag)),
+            cmd: self.command.clone(),
             ..Default::default()
         }
     }
