@@ -273,7 +273,8 @@ impl ContainerConfig {
         let mut exposed_ports = HashMap::new();
         let mut port_bindings = HashMap::new();
         if let Some(ports) = &self.ports {
-            for (e, i) in ports {
+            for (i, e) in ports {
+                let e = format!("{}/tcp", e);
                 exposed_ports.insert(e.clone(), HashMap::new());
                 port_bindings.insert(
                     e.clone(),
