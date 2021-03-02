@@ -239,6 +239,13 @@ impl Runner {
                 warn!("Error removing container '{}': {}", c, e)
             }
         }
+
+        for n in self.networks {
+            let r = self.docker.remove_network(&n).await;
+            if let Err(e) = r {
+                warn!("Error removing network '{}': {}", n, e)
+            }
+        }
     }
 
     pub fn docker_client(&self) -> &Docker {
