@@ -159,12 +159,12 @@ impl Runner {
         });
     }
 
-    pub async fn finish(self) {
+    async fn finish(&self) {
         let r = self.end_tx.send(());
         if let Err(e) = r {
             warn!("Error sending shutdown signal to monitoring tasks: {}", e)
         }
-        for c in self.containers {
+        for c in &self.containers {
             let r = self
                 .docker
                 .stop_container(
@@ -195,6 +195,14 @@ impl Runner {
 
     pub fn docker_client(&self) -> &Docker {
         &self.docker
+    }
+}
+
+impl Drop for Runner {
+    fn drop(&mut self) {
+        tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(self.finish())
     }
 }
 
