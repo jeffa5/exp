@@ -148,6 +148,8 @@ impl Runner {
                     Some(item) = logs.next() => {
                         if let Ok(item) = item {
                             write!(logs_file, "{}", item).unwrap()
+                        } else {
+                            warn!("Error getting log line: {:?}", item)
                         }
                     }
                     else => break
@@ -172,7 +174,7 @@ impl Runner {
                             serde_json::to_writer(&mut stats_file, &stat).unwrap();
                             writeln!(stats_file).unwrap();
                         } else {
-                            writeln!(stats_file, "{:?}", stat).unwrap();
+                            warn!("Error getting stats statistics: {:?}", stat);
                         }
                     }
                     else => break,
@@ -196,10 +198,13 @@ impl Runner {
                     _ = interval.tick() => {
                         let top = docker
                             .top_processes(&name_owned, Some(TopOptions { ps_args: "aux" }))
-                            .await
-                            .expect("Failed to get top info");
-                        serde_json::to_writer(&mut top_file, &top).unwrap();
-                        writeln!(top_file).unwrap();
+                            .await;
+                        if let Ok(top) = top {
+                            serde_json::to_writer(&mut top_file, &top).unwrap();
+                            writeln!(top_file).unwrap();
+                        }else {
+                            warn!("Error getting top statistics: {:?}", top);
+                        }
                     }
                     else => break,
                 }
