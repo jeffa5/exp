@@ -11,7 +11,7 @@ use bollard::{
         Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StatsOptions,
         StopContainerOptions, TopOptions,
     },
-    models::EndpointSettings,
+    models::{EndpointSettings, HostConfig, PortBinding},
     network::{ConnectNetworkOptions, CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
@@ -265,13 +265,33 @@ pub struct ContainerConfig {
     pub image_tag: String,
     pub network: Option<String>,
     pub command: Option<Vec<String>>,
+    pub ports: Option<Vec<(String, String)>>,
 }
 
 impl ContainerConfig {
     fn to_create_container_config(&self) -> Config<String> {
+        let mut exposed_ports = HashMap::new();
+        let mut port_bindings = HashMap::new();
+        if let Some(ports) = &self.ports {
+            for (e, i) in ports {
+                exposed_ports.insert(e.clone(), HashMap::new());
+                port_bindings.insert(
+                    e.clone(),
+                    Some(vec![PortBinding {
+                        host_ip: None,
+                        host_port: Some(i.clone()),
+                    }]),
+                );
+            }
+        }
         Config {
             image: Some(format!("{}:{}", self.image_name, self.image_tag)),
             cmd: self.command.clone(),
+            exposed_ports: Some(exposed_ports),
+            host_config: Some(HostConfig {
+                port_bindings: Some(port_bindings),
+                ..Default::default()
+            }),
             ..Default::default()
         }
     }

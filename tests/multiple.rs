@@ -171,6 +171,8 @@ impl RunnableExperiment<'_> for Exp {
                 image_name: "nginx".to_owned(),
                 image_tag: "alpine".to_owned(),
                 network: Some("exp-test-net".to_owned()),
+                command: None,
+                ports: Some(vec![("90".to_owned(), "80".to_owned())]),
             })
             .await;
         tokio::time::sleep(Duration::from_secs(5)).await;
