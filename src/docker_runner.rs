@@ -11,8 +11,8 @@ use bollard::{
         Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StatsOptions,
         StopContainerOptions, TopOptions,
     },
-    models::{EndpointSettings, HostConfig, Ipam, PortBinding},
-    network::{ConnectNetworkOptions, CreateNetworkOptions, ListNetworksOptions},
+    models::{HostConfig, Ipam, PortBinding},
+    network::{CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
 use futures::stream::StreamExt;
@@ -166,6 +166,8 @@ impl Runner {
                     _ = end_rx_clone.changed() => break,
                     Some(stat) = stats.next() => {
                         if let Ok(stat) = stat {
+                            let time = chrono::Local::now().to_rfc3339();
+                            write!(stats_file, "{} ", time).unwrap();
                             serde_json::to_writer(&mut stats_file, &stat).unwrap();
                             writeln!(stats_file).unwrap();
                         } else {
@@ -195,6 +197,8 @@ impl Runner {
                             .top_processes(&name_owned, Some(TopOptions { ps_args: "aux" }))
                             .await;
                         if let Ok(top) = top {
+                            let time = chrono::Local::now().to_rfc3339();
+                            write!(top_file, "{} ", time).unwrap();
                             serde_json::to_writer(&mut top_file, &top).unwrap();
                             writeln!(top_file).unwrap();
                         }else {
