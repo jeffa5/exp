@@ -69,15 +69,6 @@ impl Runner {
             .expect("Failed to create docker config file");
         serde_json::to_writer(config_file, &config).expect("Failed to write docker config");
 
-        let _create_res = self
-            .docker
-            .create_container(
-                Some(CreateContainerOptions { name: &config.name }),
-                config.to_create_container_config(),
-            )
-            .await
-            .expect("Failed to create container");
-
         if let Some(network_name) = &config.network {
             let mut net_filters = HashMap::new();
             net_filters.insert("name", vec![network_name.as_str()]);
@@ -103,19 +94,28 @@ impl Runner {
                 self.networks.push(network_name.clone());
             }
 
-            self.docker
-                .connect_network(
-                    network_name,
-                    ConnectNetworkOptions {
-                        container: config.name.as_str(),
-                        endpoint_config: EndpointSettings {
-                            ..Default::default()
-                        },
-                    },
-                )
-                .await
-                .expect("Failed to connect container to network")
+            // self.docker
+            //     .connect_network(
+            //         network_name,
+            //         ConnectNetworkOptions {
+            //             container: config.name.as_str(),
+            //             endpoint_config: EndpointSettings {
+            //                 ..Default::default()
+            //             },
+            //         },
+            //     )
+            //     .await
+            //     .expect("Failed to connect container to network")
         }
+
+        let _create_res = self
+            .docker
+            .create_container(
+                Some(CreateContainerOptions { name: &config.name }),
+                config.to_create_container_config(),
+            )
+            .await
+            .expect("Failed to create container");
 
         self.containers.push(config.name.to_owned());
 
@@ -291,6 +291,12 @@ impl ContainerConfig {
             exposed_ports: Some(exposed_ports),
             host_config: Some(HostConfig {
                 port_bindings: Some(port_bindings),
+                network_mode: Some(
+                    self.network
+                        .as_ref()
+                        .unwrap_or(&"default".to_owned())
+                        .to_owned(),
+                ),
                 ..Default::default()
             }),
             ..Default::default()
