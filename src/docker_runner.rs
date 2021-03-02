@@ -92,7 +92,11 @@ impl Runner {
                         name: network_name.as_str(),
                         check_duplicate: true,
                         ipam: Ipam {
-                            config: Some(vec![network_config]),
+                            config: if network_config.is_empty() {
+                                None
+                            } else {
+                                Some(vec![network_config])
+                            },
                             ..Default::default()
                         },
                         ..Default::default()
