@@ -172,7 +172,7 @@ impl RunnableExperiment<'_> for Exp {
                 },
             )
             .await;
-        tokio::time::sleep(Duration::from_secs(15)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
         runner.finish().await
     }
     async fn post_run(&self, _: &Self::RunConfiguration) {
