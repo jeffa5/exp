@@ -11,7 +11,7 @@ use bollard::{
         Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StatsOptions,
         StopContainerOptions, TopOptions,
     },
-    models::{EndpointSettings, HostConfig, PortBinding},
+    models::{EndpointSettings, HostConfig, Ipam, PortBinding},
     network::{ConnectNetworkOptions, CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
@@ -83,10 +83,18 @@ impl Runner {
                 .filter(|n| n.name.as_ref() == Some(network_name))
                 .count();
             if net_count == 0 {
+                let mut network_config = HashMap::new();
+                if let Some(subnet) = &config.network_subnet {
+                    network_config.insert("Subnet".to_owned(), subnet.clone());
+                }
                 self.docker
                     .create_network(CreateNetworkOptions {
                         name: network_name.as_str(),
                         check_duplicate: true,
+                        ipam: Ipam {
+                            config: Some(vec![network_config]),
+                            ..Default::default()
+                        },
                         ..Default::default()
                     })
                     .await
@@ -251,6 +259,7 @@ pub struct ContainerConfig {
     pub image_name: String,
     pub image_tag: String,
     pub network: Option<String>,
+    pub network_subnet: Option<String>,
     pub command: Option<Vec<String>>,
     pub ports: Option<Vec<(String, String)>>,
 }
