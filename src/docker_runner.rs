@@ -13,7 +13,7 @@ use bollard::{
     Docker,
 };
 use futures::stream::StreamExt;
-use tracing::info;
+use tracing::{info, warn};
 
 // The docker runner for a particular experiment run
 // handles creation of resources and teardown after
@@ -160,18 +160,25 @@ impl Runner {
     }
 
     pub async fn finish(self) {
-        self.end_tx.send(()).expect("Failed sending end");
+        let r = self.end_tx.send(());
+        if let Err(e) = r {
+            warn!("Error sending shutdown signal to monitoring tasks: {}", e)
+        }
         for c in self.containers {
-            self.docker
+            let r = self
+                .docker
                 .stop_container(
                     &c,
                     Some(StopContainerOptions {
                         t: 10, // seconds until kill
                     }),
                 )
-                .await
-                .expect("Failed to stop container");
-            self.docker
+                .await;
+            if let Err(e) = r {
+                warn!("Error stopping container '{}': {}", c, e)
+            }
+            let r = self
+                .docker
                 .remove_container(
                     &c,
                     Some(RemoveContainerOptions {
@@ -179,8 +186,10 @@ impl Runner {
                         ..Default::default()
                     }),
                 )
-                .await
-                .expect("Failed to remove container")
+                .await;
+            if let Err(e) = r {
+                warn!("Error removing container '{}': {}", c, e)
+            }
         }
     }
 }
