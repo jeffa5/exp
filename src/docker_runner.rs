@@ -12,7 +12,7 @@ use bollard::{
     },
     Docker,
 };
-use futures::{future, stream::StreamExt};
+use futures::stream::StreamExt;
 use tracing::info;
 
 // The docker runner for a particular experiment run
