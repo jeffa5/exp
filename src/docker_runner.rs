@@ -53,7 +53,7 @@ impl Runner {
         }
     }
 
-    pub async fn add_container(&mut self, name: &str, config: Config<String>) {
+    pub async fn add_container(&mut self, name: &str, config: Config<&str>) {
         let config_dir =
             create_config_dir(&self.repeat_dir).expect("Failed to create docker config dir");
         let logs_dir = create_logs_dir(&self.repeat_dir).expect("Failed to create logs dir");
