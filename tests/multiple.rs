@@ -1,10 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use exp::{
-    docker_runner::ContainerConfig, AnalysableExperiment, ExperimentConfiguration, NamedExperiment,
-    RunnableExperiment,
-};
+use exp::{docker_runner::ContainerConfig, Experiment, ExperimentConfiguration};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -20,15 +17,13 @@ struct ExpA {
     configurations: Vec<ExpAConfig>,
 }
 
-impl NamedExperiment for ExpA {
+#[async_trait]
+impl Experiment<'_> for ExpA {
+    type RunConfiguration = ExpAConfig;
+
     fn name(&self) -> &str {
         "a"
     }
-}
-
-#[async_trait]
-impl RunnableExperiment<'_> for ExpA {
-    type RunConfiguration = ExpAConfig;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         self.configurations.clone()
@@ -42,17 +37,9 @@ impl RunnableExperiment<'_> for ExpA {
     async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun a")
     }
-}
 
-impl AnalysableExperiment for ExpA {
-    fn pre_analyse(&self) {
-        todo!()
-    }
-    fn analyse(&self) {
-        todo!()
-    }
-    fn post_analyse(&self) {
-        todo!()
+    fn analyse(&self, exp_dir: PathBuf, configurations: Vec<Self::RunConfiguration>) {
+        println!("analyse")
     }
 }
 
@@ -69,15 +56,13 @@ struct ExpB {
     configurations: Vec<ExpBConfig>,
 }
 
-impl NamedExperiment for ExpB {
+#[async_trait]
+impl Experiment<'_> for ExpB {
+    type RunConfiguration = ExpBConfig;
+
     fn name(&self) -> &str {
         "b"
     }
-}
-
-#[async_trait]
-impl RunnableExperiment<'_> for ExpB {
-    type RunConfiguration = ExpBConfig;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         self.configurations.clone()
@@ -91,17 +76,9 @@ impl RunnableExperiment<'_> for ExpB {
     async fn post_run(&self, _: &Self::RunConfiguration) {
         todo!()
     }
-}
 
-impl AnalysableExperiment for ExpB {
-    fn pre_analyse(&self) {
-        todo!()
-    }
-    fn analyse(&self) {
-        todo!()
-    }
-    fn post_analyse(&self) {
-        todo!()
+    fn analyse(&self, exp_dir: PathBuf, configurations: Vec<Self::RunConfiguration>) {
+        println!("analyse")
     }
 }
 
@@ -125,18 +102,16 @@ enum Exp {
     B(ExpB),
 }
 
-impl NamedExperiment for Exp {
+#[async_trait]
+impl Experiment<'_> for Exp {
+    type RunConfiguration = ExpConfig;
+
     fn name(&self) -> &str {
         match self {
             Self::A(a) => a.name(),
             Self::B(b) => b.name(),
         }
     }
-}
-
-#[async_trait]
-impl RunnableExperiment<'_> for Exp {
-    type RunConfiguration = ExpConfig;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         match self {
@@ -171,6 +146,7 @@ impl RunnableExperiment<'_> for Exp {
                 image_name: "nginx".to_owned(),
                 image_tag: "alpine".to_owned(),
                 network: Some("exp-test-net".to_owned()),
+                network_subnet: None,
                 command: None,
                 ports: Some(vec![("90".to_owned(), "80".to_owned())]),
             })
@@ -180,6 +156,10 @@ impl RunnableExperiment<'_> for Exp {
     }
     async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun")
+    }
+
+    fn analyse(&self, exp_dir: PathBuf, configurations: Vec<Self::RunConfiguration>) {
+        println!("analyse")
     }
 }
 

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::info;
 
-use crate::{ExperimentConfiguration, RunnableExperiment};
+use crate::{Experiment, ExperimentConfiguration};
 
 #[derive(Debug, Error)]
 pub enum RunError {
@@ -22,7 +22,7 @@ pub struct RunConfig {
     pub output_dir: PathBuf,
 }
 
-pub async fn run<'a, E: RunnableExperiment<'a>>(
+pub async fn run<'a, E: Experiment<'a>>(
     experiments: &[E],
     config: &RunConfig,
 ) -> Result<(), RunError> {
@@ -33,10 +33,7 @@ pub async fn run<'a, E: RunnableExperiment<'a>>(
     Ok(())
 }
 
-async fn run_single<'a, E: RunnableExperiment<'a>>(
-    experiment: &E,
-    dir: &Path,
-) -> Result<(), RunError> {
+async fn run_single<'a, E: Experiment<'a>>(experiment: &E, dir: &Path) -> Result<(), RunError> {
     let experiment_dir = create_experiment_dir(dir, experiment.name())?;
     collect_environment_data(&experiment_dir);
 
