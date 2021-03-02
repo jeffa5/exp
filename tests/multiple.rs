@@ -1,8 +1,10 @@
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use bollard::container::Config;
-use exp::{AnalysableExperiment, ExperimentConfiguration, NamedExperiment, RunnableExperiment};
+use exp::{
+    docker_runner::ContainerConfig, AnalysableExperiment, ExperimentConfiguration, NamedExperiment,
+    RunnableExperiment,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -164,13 +166,12 @@ impl RunnableExperiment<'_> for Exp {
         println!("run");
 
         runner
-            .add_container(
-                "exp-test-1",
-                Config {
-                    image: Some("nginx:alpine".to_string()),
-                    ..Default::default()
-                },
-            )
+            .add_container(&ContainerConfig {
+                name: "exp-test-1".to_owned(),
+                image_name: "nginx".to_owned(),
+                image_tag: "alpine".to_owned(),
+                network: Some("exp-test-net".to_owned()),
+            })
             .await;
         tokio::time::sleep(Duration::from_secs(5)).await;
         runner.finish().await

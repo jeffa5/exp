@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{create_dir_all, File},
     io,
     io::Write,
@@ -10,9 +11,12 @@ use bollard::{
         Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StatsOptions,
         StopContainerOptions, TopOptions,
     },
+    models::EndpointSettings,
+    network::{ConnectNetworkOptions, CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
 use futures::stream::StreamExt;
+use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
 // The docker runner for a particular experiment run
@@ -20,6 +24,7 @@ use tracing::{info, warn};
 #[derive(Debug)]
 pub struct Runner {
     containers: Vec<String>,
+    networks: Vec<String>,
     docker: Docker,
     repeat_dir: PathBuf,
     end_tx: tokio::sync::watch::Sender<()>,
@@ -46,6 +51,7 @@ impl Runner {
         let (end_tx, end_rx) = tokio::sync::watch::channel(());
         Self {
             containers: Vec::new(),
+            networks: Vec::new(),
             docker,
             repeat_dir,
             end_tx,
@@ -53,31 +59,73 @@ impl Runner {
         }
     }
 
-    pub async fn add_container(&mut self, name: &str, config: Config<&str>) {
+    pub async fn add_container(&mut self, config: &ContainerConfig) {
         let config_dir =
             create_config_dir(&self.repeat_dir).expect("Failed to create docker config dir");
         let logs_dir = create_logs_dir(&self.repeat_dir).expect("Failed to create logs dir");
         let metrics_dir =
             create_metrics_dir(&self.repeat_dir).expect("Failed to create metrics dir");
-        let config_file = File::create(&config_dir.join(format!("docker-{}.json", name)))
+        let config_file = File::create(&config_dir.join(format!("docker-{}.json", config.name)))
             .expect("Failed to create docker config file");
         serde_json::to_writer(config_file, &config).expect("Failed to write docker config");
 
         let _create_res = self
             .docker
-            .create_container(Some(CreateContainerOptions { name }), config.clone())
+            .create_container(
+                Some(CreateContainerOptions { name: &config.name }),
+                config.to_create_container_config(),
+            )
             .await
             .expect("Failed to create container");
 
-        self.containers.push(name.to_owned());
+        if let Some(network_name) = &config.network {
+            let mut net_filters = HashMap::new();
+            net_filters.insert("name", vec![network_name.as_str()]);
+            let net_count = self
+                .docker
+                .list_networks(Some(ListNetworksOptions {
+                    filters: net_filters,
+                }))
+                .await
+                .expect("Failed to list networks")
+                .iter()
+                .filter(|n| n.name.as_ref() == Some(network_name))
+                .count();
+            if net_count == 0 {
+                self.docker
+                    .create_network(CreateNetworkOptions {
+                        name: network_name.as_str(),
+                        check_duplicate: true,
+                        ..Default::default()
+                    })
+                    .await
+                    .expect("Failed to create network");
+                self.networks.push(network_name.clone());
+            }
+
+            self.docker
+                .connect_network(
+                    network_name,
+                    ConnectNetworkOptions {
+                        container: config.name.as_str(),
+                        endpoint_config: EndpointSettings {
+                            ..Default::default()
+                        },
+                    },
+                )
+                .await
+                .expect("Failed to connect container to network")
+        }
+
+        self.containers.push(config.name.to_owned());
 
         self.docker
-            .start_container::<String>(&name, None)
+            .start_container::<String>(&config.name, None)
             .await
             .expect("Failed to start container");
 
         let docker = self.docker.clone();
-        let name_owned = name.to_owned();
+        let name_owned = config.name.to_owned();
         let mut end_rx_clone = self.end_rx.clone();
         tokio::spawn(async move {
             let mut logs = docker.logs(
@@ -108,7 +156,7 @@ impl Runner {
         });
 
         let docker = self.docker.clone();
-        let name_owned = name.to_owned();
+        let name_owned = config.name.to_owned();
         let metrics_dir_c = metrics_dir.clone();
         let mut end_rx_clone = self.end_rx.clone();
         tokio::spawn(async move {
@@ -133,7 +181,7 @@ impl Runner {
         });
 
         let docker = self.docker.clone();
-        let name_owned = name.to_owned();
+        let name_owned = config.name.to_owned();
         let mut end_rx_clone = self.end_rx.clone();
         tokio::spawn(async move {
             let interval = tokio::time::interval(std::time::Duration::from_secs(1));
@@ -195,6 +243,23 @@ impl Runner {
 
     pub fn docker_client(&self) -> &Docker {
         &self.docker
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ContainerConfig {
+    pub name: String,
+    pub image_name: String,
+    pub image_tag: String,
+    pub network: Option<String>,
+}
+
+impl ContainerConfig {
+    fn to_create_container_config(&self) -> Config<String> {
+        Config {
+            image: Some(format!("{}:{}", self.image_name, self.image_tag)),
+            ..Default::default()
+        }
     }
 }
 
