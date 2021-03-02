@@ -17,11 +17,13 @@ use tracing::info;
 
 // The docker runner for a particular experiment run
 // handles creation of resources and teardown after
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Runner {
     containers: Vec<String>,
     docker: Docker,
     repeat_dir: PathBuf,
+    end_tx: tokio::sync::watch::Sender<()>,
+    end_rx: tokio::sync::watch::Receiver<()>,
 }
 
 impl Runner {
@@ -41,10 +43,13 @@ impl Runner {
         let info_file = File::create(config_dir.join("docker-info.json"))
             .expect("Failed to create docker info file");
         serde_json::to_writer(info_file, &info).unwrap();
+        let (end_tx, end_rx) = tokio::sync::watch::channel(());
         Self {
             containers: Vec::new(),
             docker,
             repeat_dir,
+            end_tx,
+            end_rx,
         }
     }
 
@@ -71,8 +76,9 @@ impl Runner {
 
         let docker = self.docker.clone();
         let name_owned = name.to_owned();
+        let mut end_rx_clone = self.end_rx.clone();
         tokio::spawn(async move {
-            let logs = docker.logs(
+            let mut logs = docker.logs(
                 &name_owned,
                 Some(LogsOptions::<String> {
                     follow: true,
@@ -84,52 +90,69 @@ impl Runner {
             );
             let mut logs_file = File::create(logs_dir.join(format!("docker-{}.log", name_owned)))
                 .expect("Failed to create logs file");
-            logs.for_each(|item| {
-                if let Ok(item) = item {
-                    write!(logs_file, "{}", item).unwrap()
+            loop {
+                tokio::select! {
+                    _ = end_rx_clone.changed() => {
+                        break
+                    }
+                    Some(item) = logs.next() => {
+                        if let Ok(item) = item {
+                            write!(logs_file, "{}", item).unwrap()
+                        }
+                    }
+                    else => break
                 }
-                future::ready(())
-            })
-            .await
+            }
         });
 
         let docker = self.docker.clone();
         let name_owned = name.to_owned();
         let metrics_dir_c = metrics_dir.clone();
+        let mut end_rx_clone = self.end_rx.clone();
         tokio::spawn(async move {
-            let stats = docker.stats(&name_owned, Some(StatsOptions { stream: true }));
+            let mut stats = docker.stats(&name_owned, Some(StatsOptions { stream: true }));
             let mut stats_file =
                 File::create(&metrics_dir_c.join(format!("docker-{}.stat", name_owned)))
                     .expect("Failed to create stats file");
-            stats
-                .for_each(|stat| {
-                    writeln!(stats_file, "{:?}", stat).unwrap();
-                    if let Ok(stat) = stat {
-                        serde_json::to_writer(&mut stats_file, &stat).unwrap();
-                        writeln!(stats_file).unwrap();
+            loop {
+                tokio::select! {
+                    _ = end_rx_clone.changed() => break,
+                    Some(stat) = stats.next() => {
+                        if let Ok(stat) = stat {
+                            serde_json::to_writer(&mut stats_file, &stat).unwrap();
+                            writeln!(stats_file).unwrap();
+                        } else {
+                            writeln!(stats_file, "{:?}", stat).unwrap();
+                        }
                     }
-                    future::ready(())
-                })
-                .await
+                    else => break,
+                }
+            }
         });
 
         let docker = self.docker.clone();
         let name_owned = name.to_owned();
+        let mut end_rx_clone = self.end_rx.clone();
         tokio::spawn(async move {
-            let interval = tokio::time::interval(std::time::Duration::from_secs(5));
+            let interval = tokio::time::interval(std::time::Duration::from_secs(1));
             tokio::pin!(interval);
 
             let mut top_file =
                 File::create(&metrics_dir.join(format!("docker-{}.top", name_owned)))
                     .expect("Failed to create top file");
             loop {
-                let top = docker
-                    .top_processes(&name_owned, Some(TopOptions { ps_args: "aux" }))
-                    .await
-                    .expect("Failed to get top info");
-                serde_json::to_writer(&mut top_file, &top).unwrap();
-                writeln!(top_file).unwrap();
-                interval.tick().await;
+                tokio::select! {
+                    _ = end_rx_clone.changed() => break,
+                    _ = interval.tick() => {
+                        let top = docker
+                            .top_processes(&name_owned, Some(TopOptions { ps_args: "aux" }))
+                            .await
+                            .expect("Failed to get top info");
+                        serde_json::to_writer(&mut top_file, &top).unwrap();
+                        writeln!(top_file).unwrap();
+                    }
+                    else => break,
+                }
             }
         });
 
@@ -137,6 +160,7 @@ impl Runner {
     }
 
     pub async fn finish(self) {
+        self.end_tx.send(()).expect("Failed sending end");
         for c in self.containers {
             self.docker
                 .stop_container(
