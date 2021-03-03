@@ -153,14 +153,9 @@ rec {
       };
       "bollard" = rec {
         crateName = "bollard";
-        version = "0.10.0";
+        version = "0.10.1";
         edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/fussybeaver/bollard";
-          rev = "243eec8fa4315c6daa7a31bcbb804342432ef1d6";
-          sha256 = "05bl57wi2pkhp2nn2xdaxb85gd39r77hx5qlaxn1am0pdb9j59nl";
-        };
+        sha256 = "1sbpzdacd67mrpmif2qrhgaf6638cj0ghiwd6p9zybis1z0994b9";
         authors = [
           "Bollard contributors"
         ];
@@ -1097,16 +1092,17 @@ rec {
       };
       "hex" = rec {
         crateName = "hex";
-        version = "0.4.2";
+        version = "0.4.3";
         edition = "2018";
-        sha256 = "0dbf00j3h3pz0lw8jp245rwypna6i23l4cpvym8gsczin9c92kv4";
+        sha256 = "0w1a4davm1lgzpamwnba907aysmlrnygbqmfis2mqjx5m552a93z";
         authors = [
           "KokaKiwi <kokakiwi@kokakiwi.net>"
         ];
         features = {
           "default" = [ "std" ];
+          "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "std" ];
       };
       "http" = rec {
         crateName = "http";
@@ -1683,9 +1679,9 @@ rec {
       };
       "once_cell" = rec {
         crateName = "once_cell";
-        version = "1.7.1";
+        version = "1.7.2";
         edition = "2018";
-        sha256 = "0m7vlpx4ris6zmz5jx7rvadylj2jvjd0wnf1afbp5b2j5isbjy7a";
+        sha256 = "18qmpyfigg4ibdhjy5mwcjhzk9adwlgfaqv7nj430ivm86q0i2xg";
         authors = [
           "Aleksey Kladov <aleksey.kladov@gmail.com>"
         ];
