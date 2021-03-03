@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize)]
 struct ExpAConfig {}
 
-impl ExperimentConfiguration<'_> for ExpAConfig {
+impl ExperimentConfiguration for ExpAConfig {
     fn repeats(&self) -> u32 {
         2
     }
@@ -18,7 +18,7 @@ struct ExpA {
 }
 
 #[async_trait]
-impl Experiment<'_> for ExpA {
+impl Experiment for ExpA {
     type RunConfiguration = ExpAConfig;
 
     fn name(&self) -> &str {
@@ -38,7 +38,12 @@ impl Experiment<'_> for ExpA {
         println!("postrun a")
     }
 
-    fn analyse(&self, exp_dir: PathBuf, date: chrono::DateTime<chrono::Local>) {
+    fn analyse(
+        &self,
+        exp_dir: PathBuf,
+        date: chrono::DateTime<chrono::Local>,
+        configurations: &[Self::RunConfiguration],
+    ) {
         println!("analyse")
     }
 }
@@ -46,7 +51,7 @@ impl Experiment<'_> for ExpA {
 #[derive(Clone, Serialize, Deserialize)]
 struct ExpBConfig {}
 
-impl ExperimentConfiguration<'_> for ExpBConfig {
+impl ExperimentConfiguration for ExpBConfig {
     fn repeats(&self) -> u32 {
         1
     }
@@ -57,7 +62,7 @@ struct ExpB {
 }
 
 #[async_trait]
-impl Experiment<'_> for ExpB {
+impl Experiment for ExpB {
     type RunConfiguration = ExpBConfig;
 
     fn name(&self) -> &str {
@@ -77,7 +82,12 @@ impl Experiment<'_> for ExpB {
         todo!()
     }
 
-    fn analyse(&self, exp_dir: PathBuf, date: chrono::DateTime<chrono::Local>) {
+    fn analyse(
+        &self,
+        exp_dir: PathBuf,
+        date: chrono::DateTime<chrono::Local>,
+        configurations: &[Self::RunConfiguration],
+    ) {
         println!("analyse")
     }
 }
@@ -88,7 +98,7 @@ enum ExpConfig {
     B(ExpBConfig),
 }
 
-impl ExperimentConfiguration<'_> for ExpConfig {
+impl ExperimentConfiguration for ExpConfig {
     fn repeats(&self) -> u32 {
         match self {
             Self::A(a) => a.repeats(),
@@ -103,7 +113,7 @@ enum Exp {
 }
 
 #[async_trait]
-impl Experiment<'_> for Exp {
+impl Experiment for Exp {
     type RunConfiguration = ExpConfig;
 
     fn name(&self) -> &str {
@@ -158,10 +168,33 @@ impl Experiment<'_> for Exp {
         println!("postrun")
     }
 
-    fn analyse(&self, exp_dir: PathBuf, date: chrono::DateTime<chrono::Local>) {
+    fn analyse(
+        &self,
+        exp_dir: PathBuf,
+        date: chrono::DateTime<chrono::Local>,
+        configurations: &[Self::RunConfiguration],
+    ) {
         match self {
-            Self::A(a) => a.analyse(exp_dir, date),
-            Self::B(b) => b.analyse(exp_dir, date),
+            Self::A(a) => {
+                let confs = configurations
+                    .iter()
+                    .map(|c| match c {
+                        ExpConfig::A(a) => a.clone(),
+                        ExpConfig::B(_) => panic!("found wrong config"),
+                    })
+                    .collect::<Vec<_>>();
+                a.analyse(exp_dir, date, &confs)
+            }
+            Self::B(b) => {
+                let confs = configurations
+                    .iter()
+                    .map(|c| match c {
+                        ExpConfig::A(_) => panic!("found wrong config"),
+                        ExpConfig::B(b) => b.clone(),
+                    })
+                    .collect::<Vec<_>>();
+                b.analyse(exp_dir, date, &confs)
+            }
         }
     }
 }

@@ -22,10 +22,7 @@ pub struct RunConfig {
     pub output_dir: PathBuf,
 }
 
-pub async fn run<'a, E: Experiment<'a>>(
-    experiments: &[E],
-    config: &RunConfig,
-) -> Result<(), RunError> {
+pub async fn run<E: Experiment>(experiments: &[E], config: &RunConfig) -> Result<(), RunError> {
     let exp_path = create_experiments_dir(&config.output_dir)?;
     for e in experiments {
         run_single(e, &exp_path).await?
@@ -33,7 +30,7 @@ pub async fn run<'a, E: Experiment<'a>>(
     Ok(())
 }
 
-async fn run_single<'a, E: Experiment<'a>>(experiment: &E, dir: &Path) -> Result<(), RunError> {
+async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), RunError> {
     let experiment_dir = create_experiment_dir(dir, experiment.name())?;
     collect_environment_data(&experiment_dir);
 

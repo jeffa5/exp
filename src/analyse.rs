@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 use chrono::Local;
 use thiserror::Error;
@@ -19,7 +22,7 @@ pub enum AnalyseError {
     SerdeError(#[from] serde_json::Error),
 }
 
-pub async fn analyse<'a, E: Experiment<'a>>(
+pub async fn analyse<E: Experiment>(
     experiments: &[E],
     config: &AnalyseConfig,
 ) -> Result<(), AnalyseError> {
@@ -47,7 +50,7 @@ pub async fn analyse<'a, E: Experiment<'a>>(
     Ok(())
 }
 
-async fn analyse_single<'a, E: Experiment<'a>>(
+async fn analyse_single<E: Experiment>(
     experiment: &E,
     date: chrono::DateTime<Local>,
     dir: &Path,
@@ -56,6 +59,27 @@ async fn analyse_single<'a, E: Experiment<'a>>(
         warn!("No directory for experiment '{}' exists", experiment.name());
         return Ok(());
     }
-    experiment.analyse(dir.to_path_buf(), date);
+    let mut configuration_dirs = Vec::new();
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir()
+            && path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("configuration-")
+        {
+            configuration_dirs.push(path)
+        }
+    }
+    configuration_dirs.sort();
+    let mut configurations = Vec::new();
+    for c in configuration_dirs {
+        let config_file = File::open(c.join("configuration.json")).unwrap();
+        let config: E::RunConfiguration = serde_json::from_reader(config_file).unwrap();
+        configurations.push(config);
+    }
+    experiment.analyse(dir.to_path_buf(), date, &configurations);
     Ok(())
 }
