@@ -38,7 +38,7 @@ impl Experiment<'_> for ExpA {
         println!("postrun a")
     }
 
-    fn analyse(&self, exp_dir: PathBuf, configurations: Vec<Self::RunConfiguration>) {
+    fn analyse(&self, exp_dir: PathBuf, date: chrono::DateTime<chrono::Local>) {
         println!("analyse")
     }
 }
@@ -77,7 +77,7 @@ impl Experiment<'_> for ExpB {
         todo!()
     }
 
-    fn analyse(&self, exp_dir: PathBuf, configurations: Vec<Self::RunConfiguration>) {
+    fn analyse(&self, exp_dir: PathBuf, date: chrono::DateTime<chrono::Local>) {
         println!("analyse")
     }
 }
@@ -151,15 +151,18 @@ impl Experiment<'_> for Exp {
                 ports: Some(vec![("90".to_owned(), "80".to_owned())]),
             })
             .await;
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
         runner.finish().await
     }
     async fn post_run(&self, _: &Self::RunConfiguration) {
         println!("postrun")
     }
 
-    fn analyse(&self, exp_dir: PathBuf, configurations: Vec<Self::RunConfiguration>) {
-        println!("analyse")
+    fn analyse(&self, exp_dir: PathBuf, date: chrono::DateTime<chrono::Local>) {
+        match self {
+            Self::A(a) => a.analyse(exp_dir, date),
+            Self::B(b) => b.analyse(exp_dir, date),
+        }
     }
 }
 
@@ -176,5 +179,10 @@ async fn multiple() {
     let run_config = exp::RunConfig {
         output_dir: std::env::current_dir().unwrap(),
     };
-    exp::run(&exps, &run_config).await.unwrap()
+    exp::run(&exps, &run_config).await.unwrap();
+    let analyse_config = exp::AnalyseConfig {
+        output_dir: std::env::current_dir().unwrap(),
+        date: None,
+    };
+    exp::analyse(&exps, &analyse_config).await.unwrap();
 }

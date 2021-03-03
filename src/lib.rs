@@ -7,7 +7,8 @@ mod analyse;
 pub mod docker_runner;
 mod run;
 
-pub use run::{run, RunConfig};
+pub use analyse::{analyse, AnalyseConfig, AnalyseError};
+pub use run::{run, RunConfig, RunError};
 
 pub trait ExperimentConfiguration<'a>: Serialize + Deserialize<'a> {
     fn repeats(&self) -> u32;
@@ -24,5 +25,5 @@ pub trait Experiment<'a> {
     async fn run(&self, configuration: &Self::RunConfiguration, repeat_dir: PathBuf);
     async fn post_run(&self, configuration: &Self::RunConfiguration);
 
-    fn analyse(&self, experiment_dir: PathBuf, configurations: Vec<Self::RunConfiguration>);
+    fn analyse(&self, experiment_dir: PathBuf, date: chrono::DateTime<chrono::Local>);
 }
