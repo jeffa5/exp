@@ -62,13 +62,13 @@ async fn analyse_single<E: Experiment>(
     let env_file = File::open(dir.join("environment.json"))?;
     let env = serde_json::from_reader(env_file)?;
     let mut configuration_dirs = Vec::new();
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
         let path = entry.path();
         if path.is_dir()
             && path
                 .file_name()
-                .unwrap()
+                .unwrap_or_default()
                 .to_string_lossy()
                 .starts_with("configuration-")
         {
@@ -78,8 +78,8 @@ async fn analyse_single<E: Experiment>(
     configuration_dirs.sort();
     let mut configurations = Vec::new();
     for c in configuration_dirs {
-        let config_file = File::open(c.join("configuration.json")).unwrap();
-        let config: E::Configuration = serde_json::from_reader(config_file).unwrap();
+        let config_file = File::open(c.join("configuration.json"))?;
+        let config: E::Configuration = serde_json::from_reader(config_file)?;
         configurations.push((config, c));
     }
     experiment.analyse(dir.to_path_buf(), date, env, configurations);
