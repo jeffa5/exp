@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, File},
     io,
-    io::Write,
+    io::{BufRead, ErrorKind, Write},
     path::{Path, PathBuf},
 };
 
@@ -258,6 +258,123 @@ impl Runner {
 
     pub fn docker_client(&self) -> &Docker {
         &self.docker
+    }
+}
+
+pub struct Logs {
+    container_name: String,
+    lines: Vec<(chrono::DateTime<chrono::Utc>, String)>,
+}
+
+impl Logs {
+    pub fn from_file(path: &Path) -> io::Result<Self> {
+        if let Some(file_name) = path.file_stem() {
+            if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
+                let file = File::open(path)?;
+                let mut lines = Vec::new();
+                for line in std::io::BufReader::new(file).lines() {
+                    let line = line.unwrap();
+                    let split = line.split_once(" ");
+                    if let Some((date, text)) = split {
+                        let date = chrono::DateTime::parse_from_rfc3339(date)
+                            .unwrap()
+                            .with_timezone(&chrono::Utc);
+                        lines.push((date, text.to_owned()));
+                    }
+                }
+                Ok(Logs {
+                    container_name: name.to_owned(),
+                    lines,
+                })
+            } else {
+                Err(io::Error::new(
+                    ErrorKind::InvalidInput,
+                    "filename should start with docker-",
+                ))
+            }
+        } else {
+            Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
+        }
+    }
+}
+
+pub struct Stats {
+    container_name: String,
+    lines: Vec<(chrono::DateTime<chrono::Utc>, bollard::container::Stats)>,
+}
+
+impl Stats {
+    pub fn from_file(path: &Path) -> io::Result<Self> {
+        if let Some(file_name) = path.file_stem() {
+            if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
+                let file = File::open(path)?;
+                let mut lines = Vec::new();
+                for line in std::io::BufReader::new(file).lines() {
+                    let line = line.unwrap();
+                    let split = line.split_once(" ");
+                    if let Some((date, text)) = split {
+                        let date = chrono::DateTime::parse_from_rfc3339(date)
+                            .unwrap()
+                            .with_timezone(&chrono::Utc);
+                        let stats: bollard::container::Stats = serde_json::from_str(text).unwrap();
+                        lines.push((date, stats));
+                    }
+                }
+                Ok(Stats {
+                    container_name: name.to_owned(),
+                    lines,
+                })
+            } else {
+                Err(io::Error::new(
+                    ErrorKind::InvalidInput,
+                    "filename should start with docker-",
+                ))
+            }
+        } else {
+            Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
+        }
+    }
+}
+
+pub struct Top {
+    container_name: String,
+    lines: Vec<(
+        chrono::DateTime<chrono::Utc>,
+        bollard::models::ContainerTopResponse,
+    )>,
+}
+
+impl Top {
+    pub fn from_file(path: &Path) -> io::Result<Self> {
+        if let Some(file_name) = path.file_stem() {
+            if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
+                let file = File::open(path)?;
+                let mut lines = Vec::new();
+                for line in std::io::BufReader::new(file).lines() {
+                    let line = line.unwrap();
+                    let split = line.split_once(" ");
+                    if let Some((date, text)) = split {
+                        let date = chrono::DateTime::parse_from_rfc3339(date)
+                            .unwrap()
+                            .with_timezone(&chrono::Utc);
+                        let top: bollard::models::ContainerTopResponse =
+                            serde_json::from_str(text).unwrap();
+                        lines.push((date, top));
+                    }
+                }
+                Ok(Top {
+                    container_name: name.to_owned(),
+                    lines,
+                })
+            } else {
+                Err(io::Error::new(
+                    ErrorKind::InvalidInput,
+                    "filename should start with docker-",
+                ))
+            }
+        } else {
+            Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
+        }
     }
 }
 
