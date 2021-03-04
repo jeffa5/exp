@@ -9,7 +9,7 @@ mod analyse;
 pub mod docker_runner;
 mod run;
 
-pub use analyse::{analyse, AnalyseConfig, AnalyseError};
+pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
 
 pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
