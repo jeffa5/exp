@@ -45,9 +45,6 @@ async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), Run
         let width = repeats.to_string().len();
         for i in 0..repeats {
             let repeat_dir = create_repeat_dir(&config_dir, i as usize, width)?;
-            let logs_dir = create_logs_dir(&repeat_dir)?;
-            let metrics_dir = create_metrics_dir(&repeat_dir)?;
-            let data_dir = create_data_dir(&repeat_dir)?;
             experiment.run(config, repeat_dir).await;
         }
         experiment.post_run(&config).await;
@@ -105,25 +102,4 @@ fn create_repeat_dir(parent: &Path, i: usize, width: usize) -> Result<PathBuf, i
     info!(path = ?repeat_path, "Creating repeat directory");
     create_dir_all(&repeat_path)?;
     Ok(repeat_path)
-}
-
-fn create_logs_dir(parent: &Path) -> Result<PathBuf, io::Error> {
-    let logs_path = parent.join("logs");
-    info!(path = ?logs_path, "Creating logs directory");
-    create_dir_all(&logs_path)?;
-    Ok(logs_path)
-}
-
-fn create_metrics_dir(parent: &Path) -> Result<PathBuf, io::Error> {
-    let metrics_path = parent.join("metrics");
-    info!(path = ?metrics_path, "Creating metrics directory");
-    create_dir_all(&metrics_path)?;
-    Ok(metrics_path)
-}
-
-fn create_data_dir(parent: &Path) -> Result<PathBuf, io::Error> {
-    let data_path = parent.join("data");
-    info!(path = ?data_path, "Creating data directory");
-    create_dir_all(&data_path)?;
-    Ok(data_path)
 }
