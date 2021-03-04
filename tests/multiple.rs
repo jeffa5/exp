@@ -46,7 +46,7 @@ impl Experiment for ExpA {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::Configuration],
+        configurations: &[(Self::Configuration, PathBuf)],
     ) {
         println!("analyse")
     }
@@ -94,7 +94,7 @@ impl Experiment for ExpB {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::Configuration],
+        configurations: &[(Self::Configuration, PathBuf)],
     ) {
         println!("analyse")
     }
@@ -187,14 +187,14 @@ impl Experiment for Exp {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::Configuration],
+        configurations: &[(Self::Configuration, PathBuf)],
     ) {
         match self {
             Self::A(a) => {
                 let confs = configurations
                     .iter()
-                    .map(|c| match c {
-                        ExpConfig::A(a) => a.clone(),
+                    .map(|(c, p)| match c {
+                        ExpConfig::A(a) => (a.clone(), p.clone()),
                         ExpConfig::B(_) => panic!("found wrong config"),
                     })
                     .collect::<Vec<_>>();
@@ -203,9 +203,9 @@ impl Experiment for Exp {
             Self::B(b) => {
                 let confs = configurations
                     .iter()
-                    .map(|c| match c {
+                    .map(|(c, p)| match c {
                         ExpConfig::A(_) => panic!("found wrong config"),
-                        ExpConfig::B(b) => b.clone(),
+                        ExpConfig::B(b) => (b.clone(), p.clone()),
                     })
                     .collect::<Vec<_>>();
                 b.analyse(exp_dir, date, &confs)

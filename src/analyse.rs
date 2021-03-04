@@ -78,7 +78,7 @@ async fn analyse_single<E: Experiment>(
     for c in configuration_dirs {
         let config_file = File::open(c.join("configuration.json")).unwrap();
         let config: E::Configuration = serde_json::from_reader(config_file).unwrap();
-        configurations.push(config);
+        configurations.push((config, c));
     }
     experiment.analyse(dir.to_path_buf(), date, &configurations);
     Ok(())

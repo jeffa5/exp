@@ -32,6 +32,6 @@ pub trait Experiment {
         &self,
         experiment_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::Configuration],
+        configurations: &[(Self::Configuration, PathBuf)],
     );
 }
