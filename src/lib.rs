@@ -31,7 +31,7 @@ pub trait Experiment {
     fn analyse(
         &self,
         experiment_dir: PathBuf,
-        date: chrono::DateTime<chrono::Local>,
+        date: chrono::DateTime<chrono::Utc>,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     );

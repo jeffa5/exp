@@ -77,7 +77,7 @@ fn collect_environment_data(path: &Path) {
 fn create_experiments_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let exp_path = parent
         .join("experiments")
-        .join(chrono::Local::now().to_rfc3339());
+        .join(chrono::Utc::now().to_rfc3339());
     info!(path = ?exp_path, "Creating experiments directory");
     create_dir_all(&exp_path)?;
     Ok(exp_path)

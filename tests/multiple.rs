@@ -45,7 +45,7 @@ impl Experiment for ExpA {
     fn analyse(
         &self,
         exp_dir: PathBuf,
-        date: chrono::DateTime<chrono::Local>,
+        date: chrono::DateTime<chrono::Utc>,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
@@ -124,7 +124,7 @@ impl Experiment for ExpB {
     fn analyse(
         &self,
         exp_dir: PathBuf,
-        date: chrono::DateTime<chrono::Local>,
+        date: chrono::DateTime<chrono::Utc>,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
@@ -217,7 +217,7 @@ impl Experiment for Exp {
     fn analyse(
         &self,
         exp_dir: PathBuf,
-        date: chrono::DateTime<chrono::Local>,
+        date: chrono::DateTime<chrono::Utc>,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {

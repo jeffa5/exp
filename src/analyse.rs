@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chrono::Local;
+use chrono::Utc;
 use thiserror::Error;
 use tracing::{info, warn};
 
@@ -11,7 +11,7 @@ use crate::Experiment;
 
 pub struct AnalyseConfig {
     pub output_dir: PathBuf,
-    pub date: Option<chrono::DateTime<Local>>,
+    pub date: Option<chrono::DateTime<Utc>>,
 }
 
 #[derive(Debug, Error)]
@@ -41,7 +41,7 @@ pub async fn analyse<E: Experiment>(
         dates.sort();
         let d = dates.last().unwrap();
         experiments_dir.push(d.to_rfc3339());
-        d.with_timezone(&Local)
+        d.with_timezone(&Utc)
     };
     info!("Using date: {}", date);
     for e in experiments {
@@ -52,7 +52,7 @@ pub async fn analyse<E: Experiment>(
 
 async fn analyse_single<E: Experiment>(
     experiment: &E,
-    date: chrono::DateTime<Local>,
+    date: chrono::DateTime<Utc>,
     dir: &Path,
 ) -> Result<(), AnalyseError> {
     if !dir.exists() {
