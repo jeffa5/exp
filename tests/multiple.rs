@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Duration};
+use std::{collections::HashMap, fs::read_dir, path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
 use exp::{docker_runner::ContainerConfig, Environment, Experiment, ExperimentConfiguration};
@@ -49,7 +49,37 @@ impl Experiment for ExpA {
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
-        println!("analyse")
+        let mut configs = HashMap::new();
+        for (i, (config, config_dir)) in configurations.iter().enumerate() {
+            let mut repeats = HashMap::new();
+            for (i, repeat_dir) in exp::repeat_dirs(config_dir).unwrap().iter().enumerate() {
+                // get logs, stats and top for each container
+                let mut logs = HashMap::new();
+                for log_file in read_dir(repeat_dir.join("logs")).unwrap() {
+                    if let Ok(log) = exp::docker_runner::Logs::from_file(&log_file.unwrap().path())
+                    {
+                        logs.insert(log.container_name.clone(), log);
+                    }
+                }
+                let mut stats = HashMap::new();
+                for stat_file in read_dir(repeat_dir.join("metrics")).unwrap() {
+                    if let Ok(stat) =
+                        exp::docker_runner::Stats::from_file(&stat_file.unwrap().path())
+                    {
+                        stats.insert(stat.container_name.clone(), stat);
+                    }
+                }
+                let mut tops = HashMap::new();
+                for top_file in read_dir(repeat_dir.join("metrics")).unwrap() {
+                    if let Ok(top) = exp::docker_runner::Tops::from_file(&top_file.unwrap().path())
+                    {
+                        tops.insert(top.container_name.clone(), top);
+                    }
+                }
+                repeats.insert(i, (logs, stats, tops));
+            }
+            configs.insert(i, repeats);
+        }
     }
 }
 
@@ -98,7 +128,6 @@ impl Experiment for ExpB {
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
-        println!("analyse")
     }
 }
 

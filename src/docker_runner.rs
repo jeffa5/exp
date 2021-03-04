@@ -261,6 +261,7 @@ impl Runner {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Logs {
     pub container_name: String,
     pub lines: Vec<(chrono::DateTime<chrono::Utc>, String)>,
@@ -298,6 +299,7 @@ impl Logs {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Stats {
     pub container_name: String,
     pub lines: Vec<(chrono::DateTime<chrono::Utc>, bollard::container::Stats)>,
@@ -306,29 +308,35 @@ pub struct Stats {
 impl Stats {
     pub fn from_file(path: &Path) -> io::Result<Self> {
         if let Some(file_name) = path.file_stem() {
-            if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
-                let file = File::open(path)?;
-                let mut lines = Vec::new();
-                for line in std::io::BufReader::new(file).lines() {
-                    let line = line.unwrap();
-                    let split = line.split_once(" ");
-                    if let Some((date, text)) = split {
-                        let date = chrono::DateTime::parse_from_rfc3339(date)
-                            .unwrap()
-                            .with_timezone(&chrono::Utc);
-                        let stats: bollard::container::Stats = serde_json::from_str(text).unwrap();
-                        lines.push((date, stats));
+            if path.extension().unwrap_or_default().to_string_lossy() == "stat" {
+                if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
+                    let file = File::open(path)?;
+                    let mut lines = Vec::new();
+                    for line in std::io::BufReader::new(file).lines() {
+                        let line = line.unwrap();
+                        let split = line.split_once(" ");
+                        if let Some((date, text)) = split {
+                            let date = chrono::DateTime::parse_from_rfc3339(date)
+                                .unwrap()
+                                .with_timezone(&chrono::Utc);
+                            println!("stats {:?}", text);
+                            let stats: bollard::container::Stats =
+                                serde_json::from_str(text).unwrap();
+                            lines.push((date, stats));
+                        }
                     }
+                    Ok(Stats {
+                        container_name: name.to_owned(),
+                        lines,
+                    })
+                } else {
+                    Err(io::Error::new(
+                        ErrorKind::InvalidInput,
+                        "filename should start with docker-",
+                    ))
                 }
-                Ok(Stats {
-                    container_name: name.to_owned(),
-                    lines,
-                })
             } else {
-                Err(io::Error::new(
-                    ErrorKind::InvalidInput,
-                    "filename should start with docker-",
-                ))
+                Err(io::Error::new(ErrorKind::InvalidInput, "wrong file format"))
             }
         } else {
             Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
@@ -336,6 +344,7 @@ impl Stats {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Tops {
     pub container_name: String,
     pub lines: Vec<(
@@ -347,30 +356,34 @@ pub struct Tops {
 impl Tops {
     pub fn from_file(path: &Path) -> io::Result<Self> {
         if let Some(file_name) = path.file_stem() {
-            if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
-                let file = File::open(path)?;
-                let mut lines = Vec::new();
-                for line in std::io::BufReader::new(file).lines() {
-                    let line = line.unwrap();
-                    let split = line.split_once(" ");
-                    if let Some((date, text)) = split {
-                        let date = chrono::DateTime::parse_from_rfc3339(date)
-                            .unwrap()
-                            .with_timezone(&chrono::Utc);
-                        let top: bollard::models::ContainerTopResponse =
-                            serde_json::from_str(text).unwrap();
-                        lines.push((date, top));
+            if path.extension().unwrap_or_default().to_string_lossy() == "stat" {
+                if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
+                    let file = File::open(path)?;
+                    let mut lines = Vec::new();
+                    for line in std::io::BufReader::new(file).lines() {
+                        let line = line.unwrap();
+                        let split = line.split_once(" ");
+                        if let Some((date, text)) = split {
+                            let date = chrono::DateTime::parse_from_rfc3339(date)
+                                .unwrap()
+                                .with_timezone(&chrono::Utc);
+                            let top: bollard::models::ContainerTopResponse =
+                                serde_json::from_str(text).unwrap();
+                            lines.push((date, top));
+                        }
                     }
+                    Ok(Tops {
+                        container_name: name.to_owned(),
+                        lines,
+                    })
+                } else {
+                    Err(io::Error::new(
+                        ErrorKind::InvalidInput,
+                        "filename should start with docker-",
+                    ))
                 }
-                Ok(Tops {
-                    container_name: name.to_owned(),
-                    lines,
-                })
             } else {
-                Err(io::Error::new(
-                    ErrorKind::InvalidInput,
-                    "filename should start with docker-",
-                ))
+                Err(io::Error::new(ErrorKind::InvalidInput, "wrong file format"))
             }
         } else {
             Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
