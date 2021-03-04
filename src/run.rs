@@ -34,7 +34,7 @@ async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), Run
     let experiment_dir = create_experiment_dir(dir, experiment.name())?;
     collect_environment_data(&experiment_dir);
 
-    let configurations = experiment.run_configurations();
+    let configurations = experiment.configurations();
     let width = configurations.len().to_string().len();
     for (i, config) in configurations.iter().enumerate() {
         let config_dir = create_config_dir(&experiment_dir, i, width)?;
@@ -48,7 +48,7 @@ async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), Run
             let logs_dir = create_logs_dir(&repeat_dir)?;
             let metrics_dir = create_metrics_dir(&repeat_dir)?;
             let data_dir = create_data_dir(&repeat_dir)?;
-            experiment.run(&config, repeat_dir).await;
+            experiment.run(config, repeat_dir).await;
         }
         experiment.post_run(&config).await;
     }

@@ -11,6 +11,10 @@ impl ExperimentConfiguration for ExpAConfig {
     fn repeats(&self) -> u32 {
         2
     }
+
+    fn description(&self) -> &str {
+        "exp a"
+    }
 }
 
 struct ExpA {
@@ -19,22 +23,22 @@ struct ExpA {
 
 #[async_trait]
 impl Experiment for ExpA {
-    type RunConfiguration = ExpAConfig;
+    type Configuration = ExpAConfig;
 
     fn name(&self) -> &str {
         "a"
     }
 
-    fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
+    fn configurations(&self) -> Vec<Self::Configuration> {
         self.configurations.clone()
     }
-    async fn pre_run(&self, _: &Self::RunConfiguration) {
+    async fn pre_run(&self, _: &Self::Configuration) {
         println!("prerun a")
     }
-    async fn run(&self, _: &Self::RunConfiguration, repeat_dir: PathBuf) {
+    async fn run(&self, _: &Self::Configuration, repeat_dir: PathBuf) {
         println!("run a {:?}", repeat_dir)
     }
-    async fn post_run(&self, _: &Self::RunConfiguration) {
+    async fn post_run(&self, _: &Self::Configuration) {
         println!("postrun a")
     }
 
@@ -42,7 +46,7 @@ impl Experiment for ExpA {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::RunConfiguration],
+        configurations: &[Self::Configuration],
     ) {
         println!("analyse")
     }
@@ -55,6 +59,10 @@ impl ExperimentConfiguration for ExpBConfig {
     fn repeats(&self) -> u32 {
         1
     }
+
+    fn description(&self) -> &str {
+        "exp b"
+    }
 }
 
 struct ExpB {
@@ -63,22 +71,22 @@ struct ExpB {
 
 #[async_trait]
 impl Experiment for ExpB {
-    type RunConfiguration = ExpBConfig;
+    type Configuration = ExpBConfig;
 
     fn name(&self) -> &str {
         "b"
     }
 
-    fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
+    fn configurations(&self) -> Vec<Self::Configuration> {
         self.configurations.clone()
     }
-    async fn pre_run(&self, _: &Self::RunConfiguration) {
+    async fn pre_run(&self, _: &Self::Configuration) {
         todo!()
     }
-    async fn run(&self, _: &Self::RunConfiguration, repeat_dir: PathBuf) {
+    async fn run(&self, _: &Self::Configuration, repeat_dir: PathBuf) {
         todo!()
     }
-    async fn post_run(&self, _: &Self::RunConfiguration) {
+    async fn post_run(&self, _: &Self::Configuration) {
         todo!()
     }
 
@@ -86,7 +94,7 @@ impl Experiment for ExpB {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::RunConfiguration],
+        configurations: &[Self::Configuration],
     ) {
         println!("analyse")
     }
@@ -105,6 +113,13 @@ impl ExperimentConfiguration for ExpConfig {
             Self::B(b) => b.repeats(),
         }
     }
+
+    fn description(&self) -> &str {
+        match self {
+            Self::A(a) => a.description(),
+            Self::B(b) => b.description(),
+        }
+    }
 }
 
 enum Exp {
@@ -114,7 +129,7 @@ enum Exp {
 
 #[async_trait]
 impl Experiment for Exp {
-    type RunConfiguration = ExpConfig;
+    type Configuration = ExpConfig;
 
     fn name(&self) -> &str {
         match self {
@@ -123,21 +138,21 @@ impl Experiment for Exp {
         }
     }
 
-    fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
+    fn configurations(&self) -> Vec<Self::Configuration> {
         match self {
             Self::A(a) => a
-                .run_configurations()
+                .configurations()
                 .into_iter()
                 .map(ExpConfig::A)
                 .collect::<Vec<_>>(),
             Self::B(b) => b
-                .run_configurations()
+                .configurations()
                 .into_iter()
                 .map(ExpConfig::B)
                 .collect::<Vec<_>>(),
         }
     }
-    async fn pre_run(&self, config: &Self::RunConfiguration) {
+    async fn pre_run(&self, config: &Self::Configuration) {
         match (self, config) {
             (Self::A(a), ExpConfig::A(ac)) => a.pre_run(ac).await,
             (Self::B(b), ExpConfig::B(bc)) => b.pre_run(bc).await,
@@ -146,7 +161,7 @@ impl Experiment for Exp {
             }
         }
     }
-    async fn run(&self, _: &Self::RunConfiguration, repeat_dir: PathBuf) {
+    async fn run(&self, _: &Self::Configuration, repeat_dir: PathBuf) {
         let mut runner = exp::docker_runner::Runner::new(repeat_dir).await;
         println!("run");
 
@@ -164,7 +179,7 @@ impl Experiment for Exp {
         tokio::time::sleep(Duration::from_secs(1)).await;
         runner.finish().await
     }
-    async fn post_run(&self, _: &Self::RunConfiguration) {
+    async fn post_run(&self, _: &Self::Configuration) {
         println!("postrun")
     }
 
@@ -172,7 +187,7 @@ impl Experiment for Exp {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::RunConfiguration],
+        configurations: &[Self::Configuration],
     ) {
         match self {
             Self::A(a) => {

@@ -12,23 +12,24 @@ pub use run::{run, RunConfig, RunError};
 
 pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
     fn repeats(&self) -> u32;
+    fn description(&self) -> &str;
 }
 
 #[async_trait]
 pub trait Experiment {
-    type RunConfiguration: ExperimentConfiguration;
+    type Configuration: ExperimentConfiguration;
 
-    fn run_configurations(&self) -> Vec<Self::RunConfiguration>;
+    fn configurations(&self) -> Vec<Self::Configuration>;
     fn name(&self) -> &str;
 
-    async fn pre_run(&self, configuration: &Self::RunConfiguration);
-    async fn run(&self, configuration: &Self::RunConfiguration, repeat_dir: PathBuf);
-    async fn post_run(&self, configuration: &Self::RunConfiguration);
+    async fn pre_run(&self, configuration: &Self::Configuration);
+    async fn run(&self, configuration: &Self::Configuration, repeat_dir: PathBuf);
+    async fn post_run(&self, configuration: &Self::Configuration);
 
     fn analyse(
         &self,
         experiment_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[Self::RunConfiguration],
+        configurations: &[Self::Configuration],
     );
 }

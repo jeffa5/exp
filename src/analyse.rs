@@ -77,7 +77,7 @@ async fn analyse_single<E: Experiment>(
     let mut configurations = Vec::new();
     for c in configuration_dirs {
         let config_file = File::open(c.join("configuration.json")).unwrap();
-        let config: E::RunConfiguration = serde_json::from_reader(config_file).unwrap();
+        let config: E::Configuration = serde_json::from_reader(config_file).unwrap();
         configurations.push(config);
     }
     experiment.analyse(dir.to_path_buf(), date, &configurations);
