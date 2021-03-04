@@ -319,7 +319,6 @@ impl Stats {
                             let date = chrono::DateTime::parse_from_rfc3339(date)
                                 .unwrap()
                                 .with_timezone(&chrono::Utc);
-                            println!("stats {:?}", text);
                             let stats: bollard::container::Stats =
                                 serde_json::from_str(text).unwrap();
                             lines.push((date, stats));
