@@ -1,7 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use exp::{docker_runner::ContainerConfig, Experiment, ExperimentConfiguration};
+use exp::{docker_runner::ContainerConfig, Environment, Experiment, ExperimentConfiguration};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -46,7 +46,8 @@ impl Experiment for ExpA {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[(Self::Configuration, PathBuf)],
+        environment: Environment,
+        configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
         println!("analyse")
     }
@@ -94,7 +95,8 @@ impl Experiment for ExpB {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[(Self::Configuration, PathBuf)],
+        environment: Environment,
+        configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
         println!("analyse")
     }
@@ -187,28 +189,29 @@ impl Experiment for Exp {
         &self,
         exp_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[(Self::Configuration, PathBuf)],
+        environment: Environment,
+        configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
         match self {
             Self::A(a) => {
                 let confs = configurations
-                    .iter()
+                    .into_iter()
                     .map(|(c, p)| match c {
-                        ExpConfig::A(a) => (a.clone(), p.clone()),
+                        ExpConfig::A(a) => (a, p),
                         ExpConfig::B(_) => panic!("found wrong config"),
                     })
                     .collect::<Vec<_>>();
-                a.analyse(exp_dir, date, &confs)
+                a.analyse(exp_dir, date, environment, confs)
             }
             Self::B(b) => {
                 let confs = configurations
-                    .iter()
+                    .into_iter()
                     .map(|(c, p)| match c {
                         ExpConfig::A(_) => panic!("found wrong config"),
-                        ExpConfig::B(b) => (b.clone(), p.clone()),
+                        ExpConfig::B(b) => (b, p),
                     })
                     .collect::<Vec<_>>();
-                b.analyse(exp_dir, date, &confs)
+                b.analyse(exp_dir, date, environment, confs)
             }
         }
     }

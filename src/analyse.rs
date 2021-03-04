@@ -59,6 +59,8 @@ async fn analyse_single<E: Experiment>(
         warn!("No directory for experiment '{}' exists", experiment.name());
         return Ok(());
     }
+    let env_file = File::open(dir.join("environment.json"))?;
+    let env = serde_json::from_reader(env_file)?;
     let mut configuration_dirs = Vec::new();
     for entry in std::fs::read_dir(dir).unwrap() {
         let entry = entry.unwrap();
@@ -80,6 +82,6 @@ async fn analyse_single<E: Experiment>(
         let config: E::Configuration = serde_json::from_reader(config_file).unwrap();
         configurations.push((config, c));
     }
-    experiment.analyse(dir.to_path_buf(), date, &configurations);
+    experiment.analyse(dir.to_path_buf(), date, env, configurations);
     Ok(())
 }

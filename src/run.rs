@@ -53,7 +53,7 @@ async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), Run
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Environment {
+pub struct Environment {
     hostname: String,
     os: String,
     release: String,

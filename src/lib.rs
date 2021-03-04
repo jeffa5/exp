@@ -10,7 +10,7 @@ pub mod docker_runner;
 mod run;
 
 pub use analyse::{analyse, AnalyseConfig, AnalyseError};
-pub use run::{run, RunConfig, RunError};
+pub use run::{run, Environment, RunConfig, RunError};
 
 pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
     fn repeats(&self) -> u32;
@@ -32,6 +32,7 @@ pub trait Experiment {
         &self,
         experiment_dir: PathBuf,
         date: chrono::DateTime<chrono::Local>,
-        configurations: &[(Self::Configuration, PathBuf)],
+        environment: Environment,
+        configurations: Vec<(Self::Configuration, PathBuf)>,
     );
 }
