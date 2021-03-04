@@ -336,7 +336,7 @@ impl Stats {
     }
 }
 
-pub struct Top {
+pub struct Tops {
     pub container_name: String,
     pub lines: Vec<(
         chrono::DateTime<chrono::Utc>,
@@ -344,7 +344,7 @@ pub struct Top {
     )>,
 }
 
-impl Top {
+impl Tops {
     pub fn from_file(path: &Path) -> io::Result<Self> {
         if let Some(file_name) = path.file_stem() {
             if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
@@ -362,7 +362,7 @@ impl Top {
                         lines.push((date, top));
                     }
                 }
-                Ok(Top {
+                Ok(Tops {
                     container_name: name.to_owned(),
                     lines,
                 })
