@@ -262,8 +262,8 @@ impl Runner {
 }
 
 pub struct Logs {
-    container_name: String,
-    lines: Vec<(chrono::DateTime<chrono::Utc>, String)>,
+    pub container_name: String,
+    pub lines: Vec<(chrono::DateTime<chrono::Utc>, String)>,
 }
 
 impl Logs {
@@ -299,8 +299,8 @@ impl Logs {
 }
 
 pub struct Stats {
-    container_name: String,
-    lines: Vec<(chrono::DateTime<chrono::Utc>, bollard::container::Stats)>,
+    pub container_name: String,
+    pub lines: Vec<(chrono::DateTime<chrono::Utc>, bollard::container::Stats)>,
 }
 
 impl Stats {
@@ -337,8 +337,8 @@ impl Stats {
 }
 
 pub struct Top {
-    container_name: String,
-    lines: Vec<(
+    pub container_name: String,
+    pub lines: Vec<(
         chrono::DateTime<chrono::Utc>,
         bollard::models::ContainerTopResponse,
     )>,
