@@ -15,8 +15,9 @@ use bollard::{
     network::{CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
-use futures::stream::StreamExt;
+use futures::{future::join_all, stream::StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 use tracing::{info, warn};
 
 // The docker runner for a particular experiment run
@@ -29,6 +30,7 @@ pub struct Runner {
     repeat_dir: PathBuf,
     end_tx: tokio::sync::watch::Sender<()>,
     end_rx: tokio::sync::watch::Receiver<()>,
+    futures: Vec<JoinHandle<()>>,
 }
 
 impl Runner {
@@ -56,6 +58,7 @@ impl Runner {
             repeat_dir,
             end_tx,
             end_rx,
+            futures: Vec::new(),
         }
     }
 
@@ -126,7 +129,7 @@ impl Runner {
         let docker = self.docker.clone();
         let name_owned = config.name.to_owned();
         let mut end_rx_clone = self.end_rx.clone();
-        tokio::spawn(async move {
+        self.futures.push(tokio::spawn(async move {
             let mut logs = docker.logs(
                 &name_owned,
                 Some(LogsOptions::<String> {
@@ -154,13 +157,13 @@ impl Runner {
                     else => break
                 }
             }
-        });
+        }));
 
         let docker = self.docker.clone();
         let name_owned = config.name.to_owned();
         let metrics_dir_c = metrics_dir.clone();
         let mut end_rx_clone = self.end_rx.clone();
-        tokio::spawn(async move {
+        self.futures.push(tokio::spawn(async move {
             let mut stats = docker.stats(&name_owned, Some(StatsOptions { stream: true }));
             let mut stats_file =
                 File::create(&metrics_dir_c.join(format!("docker-{}.stat", name_owned)))
@@ -181,12 +184,12 @@ impl Runner {
                     else => break,
                 }
             }
-        });
+        }));
 
         let docker = self.docker.clone();
         let name_owned = config.name.to_owned();
         let mut end_rx_clone = self.end_rx.clone();
-        tokio::spawn(async move {
+        self.futures.push(tokio::spawn(async move {
             let interval = tokio::time::interval(std::time::Duration::from_secs(1));
             tokio::pin!(interval);
 
@@ -212,7 +215,7 @@ impl Runner {
                     else => break,
                 }
             }
-        });
+        }));
     }
 
     pub async fn finish(self) {
@@ -220,6 +223,7 @@ impl Runner {
         if let Err(e) = r {
             warn!("Error sending shutdown signal to monitoring tasks: {}", e)
         }
+        join_all(self.futures).await;
         for c in self.containers {
             let r = self
                 .docker
