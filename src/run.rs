@@ -45,7 +45,7 @@ async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), Run
     for (i, config) in configurations.iter().enumerate() {
         let config_dir = create_config_dir(&experiment_dir, i, width)?;
         let config_file = File::create(&config_dir.join("configuration.json"))?;
-        serde_json::to_writer(config_file, &config)?;
+        serde_json::to_writer_pretty(config_file, &config)?;
         experiment.pre_run(&config).await;
         let repeats = config.repeats();
         let width = repeats.to_string().len();
@@ -77,7 +77,7 @@ fn collect_environment_data(path: &Path) {
         architecture: utsname.machine().to_owned(),
     };
     let env_file = File::create(path.join("environment.json")).unwrap();
-    serde_json::to_writer(env_file, &env).unwrap();
+    serde_json::to_writer_pretty(env_file, &env).unwrap();
 }
 
 fn create_experiments_dir(parent: &Path) -> Result<PathBuf, io::Error> {
