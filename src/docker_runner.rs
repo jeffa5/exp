@@ -279,8 +279,8 @@ impl Logs {
                 let mut lines = Vec::new();
                 for line in std::io::BufReader::new(file).lines() {
                     let line = line.unwrap();
-                    let split = line.split_once(" ");
-                    if let Some((date, text)) = split {
+                    let split = line.splitn(2, ' ').collect::<Vec<_>>();
+                    if let [date, text] = split[..] {
                         let date = chrono::DateTime::parse_from_rfc3339(date)
                             .unwrap()
                             .with_timezone(&chrono::Utc);
@@ -318,8 +318,8 @@ impl Stats {
                     let mut lines = Vec::new();
                     for line in std::io::BufReader::new(file).lines() {
                         let line = line.unwrap();
-                        let split = line.split_once(" ");
-                        if let Some((date, text)) = split {
+                        let split = line.splitn(2, ' ').collect::<Vec<_>>();
+                        if let [date, text] = split[..] {
                             let date = chrono::DateTime::parse_from_rfc3339(date)
                                 .unwrap()
                                 .with_timezone(&chrono::Utc);
@@ -365,8 +365,8 @@ impl Tops {
                     let mut lines = Vec::new();
                     for line in std::io::BufReader::new(file).lines() {
                         let line = line.unwrap();
-                        let split = line.split_once(" ");
-                        if let Some((date, text)) = split {
+                        let split = line.splitn(2, ' ').collect::<Vec<_>>();
+                        if let [date, text] = split[..] {
                             let date = chrono::DateTime::parse_from_rfc3339(date)
                                 .unwrap()
                                 .with_timezone(&chrono::Utc);
