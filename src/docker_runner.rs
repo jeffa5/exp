@@ -403,6 +403,7 @@ pub struct ContainerConfig {
     pub network_subnet: Option<String>,
     pub command: Option<Vec<String>>,
     pub ports: Option<Vec<(String, String)>>,
+    pub capabilities: Option<Vec<String>>,
 }
 
 impl ContainerConfig {
@@ -434,6 +435,7 @@ impl ContainerConfig {
                         .unwrap_or(&"default".to_owned())
                         .to_owned(),
                 ),
+                cap_add: self.capabilities.clone(),
                 ..Default::default()
             }),
             ..Default::default()
