@@ -1,6 +1,7 @@
 # _exp_
 
-Run an experiment, repeatably and facilitate analysis for each.
+Experiments are to answer questions, lets make the answers repeatable and easy
+to analyse.
 
 ## Running an experiment
 
