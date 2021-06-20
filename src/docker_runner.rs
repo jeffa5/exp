@@ -114,18 +114,9 @@ impl Runner {
         let create_container_config = config.to_create_container_config();
 
         if config.pull {
-            self.docker
-                .create_image(
-                    Some(CreateImageOptions {
-                        from_image: create_container_config.image.clone().unwrap(),
-                        ..Default::default()
-                    }),
-                    None,
-                    None,
-                )
-                .try_collect::<Vec<_>>()
+            pull_image(create_container_config.image.as_ref().unwrap())
                 .await
-                .unwrap();
+                .expect("Failed to pull image");
         }
 
         let _create_res = self
@@ -481,4 +472,22 @@ fn create_metrics_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     info!(path = ?metrics_path, "Creating metrics directory");
     create_dir_all(&metrics_path)?;
     Ok(metrics_path)
+}
+
+pub async fn pull_image(image_name: &str) -> Result<(), bollard::errors::Error> {
+    let docker =
+        bollard::Docker::connect_with_local_defaults().expect("Failed to connect to docker api");
+
+    docker
+        .create_image(
+            Some(CreateImageOptions {
+                from_image: image_name,
+                ..Default::default()
+            }),
+            None,
+            None,
+        )
+        .try_collect::<Vec<_>>()
+        .await?;
+    Ok(())
 }
