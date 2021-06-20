@@ -111,10 +111,8 @@ impl Runner {
             }
         }
 
-        let create_container_config = config.to_create_container_config();
-
         if config.pull {
-            pull_image(create_container_config.image.as_ref().unwrap())
+            pull_image(&config.image_name, &config.image_tag)
                 .await
                 .expect("Failed to pull image");
         }
@@ -123,7 +121,7 @@ impl Runner {
             .docker
             .create_container(
                 Some(CreateContainerOptions { name: &config.name }),
-                create_container_config,
+                config.to_create_container_config(),
             )
             .await
             .expect("Failed to create container");
@@ -474,7 +472,7 @@ fn create_metrics_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     Ok(metrics_path)
 }
 
-pub async fn pull_image(image_name: &str) -> Result<(), bollard::errors::Error> {
+pub async fn pull_image(image_name: &str, image_tag: &str) -> Result<(), bollard::errors::Error> {
     let docker =
         bollard::Docker::connect_with_local_defaults().expect("Failed to connect to docker api");
 
@@ -482,6 +480,7 @@ pub async fn pull_image(image_name: &str) -> Result<(), bollard::errors::Error> 
         .create_image(
             Some(CreateImageOptions {
                 from_image: image_name,
+                tag: image_tag,
                 ..Default::default()
             }),
             None,
