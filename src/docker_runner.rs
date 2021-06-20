@@ -412,6 +412,8 @@ pub struct ContainerConfig {
     pub command: Option<Vec<String>>,
     pub ports: Option<Vec<(String, String)>>,
     pub capabilities: Option<Vec<String>>,
+    pub cpus: Option<f64>,
+    pub memory: Option<i64>,
 }
 
 impl ContainerConfig {
@@ -431,6 +433,7 @@ impl ContainerConfig {
                 );
             }
         }
+        let cpu_period = 100000;
         Config {
             image: Some(format!("{}:{}", self.image_name, self.image_tag)),
             cmd: self.command.clone(),
@@ -444,6 +447,9 @@ impl ContainerConfig {
                         .to_owned(),
                 ),
                 cap_add: self.capabilities.clone(),
+                cpu_period: self.cpus.map(|_| cpu_period),
+                cpu_quota: self.cpus.map(|cpus| (cpu_period as f64 * cpus) as i64),
+                memory: self.memory,
                 ..Default::default()
             }),
             ..Default::default()
