@@ -11,11 +11,12 @@ use bollard::{
         Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StatsOptions,
         StopContainerOptions, TopOptions,
     },
+    image::CreateImageOptions,
     models::{HostConfig, Ipam, PortBinding},
     network::{CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
-use futures::{future::join_all, stream::StreamExt};
+use futures::{future::join_all, stream::StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use tracing::{info, warn};
@@ -110,11 +111,28 @@ impl Runner {
             }
         }
 
+        let create_container_config = config.to_create_container_config();
+
+        if config.pull {
+            self.docker
+                .create_image(
+                    Some(CreateImageOptions {
+                        from_image: create_container_config.image.clone().unwrap(),
+                        ..Default::default()
+                    }),
+                    None,
+                    None,
+                )
+                .try_collect::<Vec<_>>()
+                .await
+                .unwrap();
+        }
+
         let _create_res = self
             .docker
             .create_container(
                 Some(CreateContainerOptions { name: &config.name }),
-                config.to_create_container_config(),
+                create_container_config,
             )
             .await
             .expect("Failed to create container");
@@ -399,6 +417,7 @@ pub struct ContainerConfig {
     pub name: String,
     pub image_name: String,
     pub image_tag: String,
+    pub pull: bool,
     pub network: Option<String>,
     pub network_subnet: Option<String>,
     pub command: Option<Vec<String>>,
