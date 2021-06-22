@@ -10,7 +10,7 @@ use tracing::{info, warn};
 use crate::Experiment;
 
 pub struct AnalyseConfig {
-    pub output_dir: PathBuf,
+    pub results_dir: PathBuf,
     pub date: Option<chrono::DateTime<Utc>>,
 }
 
@@ -23,15 +23,15 @@ pub enum AnalyseError {
 }
 
 pub async fn analyse<E: Experiment>(
-    experiments: &[E],
+    experiment: &E,
     config: &AnalyseConfig,
 ) -> Result<(), AnalyseError> {
-    let mut experiments_dir = config.output_dir.join("experiments");
+    let mut results_dir = config.results_dir.clone();
     let date = if let Some(date) = config.date {
-        experiments_dir.push(date.to_rfc3339());
+        results_dir.push(date.to_rfc3339());
         date
     } else {
-        let mut dates = std::fs::read_dir(&experiments_dir)?
+        let mut dates = std::fs::read_dir(&results_dir)?
             .filter_map(|d| {
                 d.ok().and_then(|d| {
                     chrono::DateTime::parse_from_rfc3339(&d.file_name().to_string_lossy()).ok()
@@ -40,13 +40,11 @@ pub async fn analyse<E: Experiment>(
             .collect::<Vec<_>>();
         dates.sort();
         let d = dates.last().unwrap();
-        experiments_dir.push(d.to_rfc3339());
+        results_dir.push(d.to_rfc3339());
         d.with_timezone(&Utc)
     };
     info!("Using date: {}", date);
-    for e in experiments {
-        analyse_single(e, date, &experiments_dir.join(e.name())).await?
-    }
+    analyse_single(experiment, date, &results_dir).await?;
     Ok(())
 }
 

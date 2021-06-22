@@ -19,25 +19,18 @@ pub enum RunError {
 }
 
 pub struct RunConfig {
-    pub output_dir: PathBuf,
+    pub results_dir: PathBuf,
 }
 
-pub async fn run<E: Experiment>(experiments: &[E], config: &RunConfig) -> Result<(), RunError> {
-    let exp_path = create_experiments_dir(&config.output_dir)?;
-    println!(
-        "Running {} experiments with experiment dir {}",
-        experiments.len(),
-        exp_path.display()
-    );
+pub async fn run<E: Experiment>(experiment: &E, config: &RunConfig) -> Result<(), RunError> {
+    let exp_path = create_experiment_dir(&config.results_dir)?;
+    println!("Running experiment with dir {}", exp_path.display());
 
-    for e in experiments {
-        run_single(e, &exp_path).await?
-    }
+    run_single(experiment, &exp_path).await?;
     Ok(())
 }
 
-async fn run_single<E: Experiment>(experiment: &E, dir: &Path) -> Result<(), RunError> {
-    let experiment_dir = create_experiment_dir(dir, experiment.name())?;
+async fn run_single<E: Experiment>(experiment: &E, experiment_dir: &Path) -> Result<(), RunError> {
     collect_environment_data(&experiment_dir);
 
     let configurations = experiment.configurations();
@@ -80,18 +73,9 @@ fn collect_environment_data(path: &Path) {
     serde_json::to_writer_pretty(env_file, &env).unwrap();
 }
 
-fn create_experiments_dir(parent: &Path) -> Result<PathBuf, io::Error> {
-    let exp_path = parent
-        .join("experiments")
-        .join(chrono::Utc::now().to_rfc3339());
+fn create_experiment_dir(results_dir: &Path) -> Result<PathBuf, io::Error> {
+    let exp_path = results_dir.join(chrono::Utc::now().to_rfc3339());
     info!(path = ?exp_path, "Creating experiments directory");
-    create_dir_all(&exp_path)?;
-    Ok(exp_path)
-}
-
-fn create_experiment_dir(parent: &Path, name: &str) -> Result<PathBuf, io::Error> {
-    let exp_path = parent.join(name);
-    info!(path = ?exp_path, "Creating experiment directory");
     create_dir_all(&exp_path)?;
     Ok(exp_path)
 }
