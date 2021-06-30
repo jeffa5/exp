@@ -1,10 +1,11 @@
 use std::{
+    collections::HashMap,
     fs::{create_dir_all, File},
     io,
     path::{Path, PathBuf},
 };
 
-use procfs::{CpuInfo, Meminfo};
+use procfs::{kernel_config, ConfigSetting, CpuInfo, Meminfo};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::info;
@@ -63,6 +64,7 @@ pub struct Environment {
     cpu_vendor_id: String,
     cpu_cores: usize,
     mem_info: Meminfo,
+    kernel_config: HashMap<String, ConfigSetting>,
 }
 
 fn collect_environment_data(path: &Path) {
@@ -79,6 +81,7 @@ fn collect_environment_data(path: &Path) {
         cpu_vendor_id: cpuinfo.vendor_id(0).unwrap().to_owned(),
         cpu_cores: cpuinfo.num_cores(),
         mem_info: meminfo,
+        kernel_config: kernel_config().unwrap(),
     };
     let env_file = File::create(path.join("environment.json")).unwrap();
     serde_json::to_writer_pretty(env_file, &env).unwrap();
