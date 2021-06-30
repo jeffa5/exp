@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use procfs::{CpuInfo, Meminfo};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::info;
@@ -58,16 +59,26 @@ pub struct Environment {
     release: String,
     version: String,
     architecture: String,
+    cpu_model_name: String,
+    cpu_vendor_id: String,
+    cpu_cores: usize,
+    mem_info: Meminfo,
 }
 
 fn collect_environment_data(path: &Path) {
     let utsname = nix::sys::utsname::uname();
+    let cpuinfo = CpuInfo::new().unwrap();
+    let meminfo = Meminfo::new().unwrap();
     let env = Environment {
         hostname: utsname.nodename().to_owned(),
         os: utsname.sysname().to_owned(),
         release: utsname.release().to_owned(),
         version: utsname.version().to_owned(),
         architecture: utsname.machine().to_owned(),
+        cpu_model_name: cpuinfo.model_name(0).unwrap().to_owned(),
+        cpu_vendor_id: cpuinfo.vendor_id(0).unwrap().to_owned(),
+        cpu_cores: cpuinfo.num_cores(),
+        mem_info: meminfo,
     };
     let env_file = File::create(path.join("environment.json")).unwrap();
     serde_json::to_writer_pretty(env_file, &env).unwrap();
