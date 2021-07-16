@@ -47,9 +47,9 @@ async fn run_single<E: Experiment>(experiment: &E, experiment_dir: &Path) -> Res
         for j in 0..repeats {
             println!(
                 "Running configuration {}/{}, repeat {}/{}",
-                i,
+                i + 1,
                 configurations.len(),
-                j,
+                j + 1,
                 repeats
             );
             let repeat_dir = create_repeat_dir(&config_dir, j as usize, width)?;
