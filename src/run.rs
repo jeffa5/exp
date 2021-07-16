@@ -44,8 +44,15 @@ async fn run_single<E: Experiment>(experiment: &E, experiment_dir: &Path) -> Res
         experiment.pre_run(&config).await;
         let repeats = config.repeats();
         let width = repeats.to_string().len();
-        for i in 0..repeats {
-            let repeat_dir = create_repeat_dir(&config_dir, i as usize, width)?;
+        for j in 0..repeats {
+            println!(
+                "Running configuration {}/{}, repeat {}/{}",
+                i,
+                configurations.len(),
+                j,
+                repeats
+            );
+            let repeat_dir = create_repeat_dir(&config_dir, j as usize, width)?;
             experiment.run(config, repeat_dir).await;
         }
         experiment.post_run(&config).await;
