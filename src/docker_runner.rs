@@ -12,7 +12,7 @@ use bollard::{
         StopContainerOptions, TopOptions,
     },
     image::CreateImageOptions,
-    models::{HostConfig, Ipam, PortBinding},
+    models::{HostConfig, Ipam, Mount, MountTypeEnum, PortBinding},
     network::{CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
@@ -414,6 +414,8 @@ pub struct ContainerConfig {
     pub capabilities: Option<Vec<String>>,
     pub cpus: Option<f64>,
     pub memory: Option<i64>,
+    /// Mount the given paths as tmpfs directories.
+    pub tmpfs: Option<Vec<String>>,
 }
 
 impl ContainerConfig {
@@ -434,6 +436,18 @@ impl ContainerConfig {
             }
         }
         let cpu_period = 100000;
+
+        let mounts = self.tmpfs.as_ref().map(|tmpfs| {
+            tmpfs
+                .iter()
+                .map(|path| Mount {
+                    target: Some(path.clone()),
+                    typ: Some(MountTypeEnum::TMPFS),
+                    ..Default::default()
+                })
+                .collect()
+        });
+
         Config {
             image: Some(format!("{}:{}", self.image_name, self.image_tag)),
             cmd: self.command.clone(),
@@ -450,6 +464,7 @@ impl ContainerConfig {
                 cpu_period: self.cpus.map(|_| cpu_period),
                 cpu_quota: self.cpus.map(|cpus| (cpu_period as f64 * cpus) as i64),
                 memory: self.memory,
+                mounts,
                 ..Default::default()
             }),
             ..Default::default()
