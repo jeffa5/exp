@@ -171,7 +171,7 @@ impl Runner {
         let metrics_dir_c = metrics_dir.clone();
         let mut end_rx_clone = self.end_rx.clone();
         self.futures.push(tokio::spawn(async move {
-            let mut stats = docker.stats(&name_owned, Some(StatsOptions { stream: true }));
+            let mut stats = docker.stats(&name_owned, Some(StatsOptions { stream: true, one_shot: false }));
             let mut stats_file =
                 File::create(&metrics_dir_c.join(format!("docker-{}.stat", name_owned)))
                     .expect("Failed to create stats file");
