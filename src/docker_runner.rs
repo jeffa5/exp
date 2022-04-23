@@ -495,22 +495,28 @@ impl ContainerConfig {
 
 fn create_config_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let conf_path = parent.join("config");
-    info!(path = ?conf_path, "Creating config directory");
-    create_dir_all(&conf_path)?;
+    if !conf_path.exists() {
+        info!(path = ?conf_path, "Creating config directory");
+        create_dir_all(&conf_path)?;
+    }
     Ok(conf_path)
 }
 
 fn create_logs_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let logs_path = parent.join("logs");
-    info!(path = ?logs_path, "Creating logs directory");
-    create_dir_all(&logs_path)?;
+    if !logs_path.exists() {
+        info!(path = ?logs_path, "Creating logs directory");
+        create_dir_all(&logs_path)?;
+    }
     Ok(logs_path)
 }
 
 fn create_metrics_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let metrics_path = parent.join("metrics");
-    info!(path = ?metrics_path, "Creating metrics directory");
-    create_dir_all(&metrics_path)?;
+    if !metrics_path.exists() {
+        info!(path = ?metrics_path, "Creating metrics directory");
+        create_dir_all(&metrics_path)?;
+    }
     Ok(metrics_path)
 }
 
