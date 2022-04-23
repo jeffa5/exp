@@ -546,6 +546,8 @@ pub async fn clean(prefix: &str) -> Result<(), bollard::errors::Error> {
         }))
         .await?;
     for container in containers {
+        let id = container.id.as_ref().unwrap();
+        dbg!(&container.names);
         let name = &container
             .names
             .and_then(|names| names.first().cloned())
@@ -553,7 +555,7 @@ pub async fn clean(prefix: &str) -> Result<(), bollard::errors::Error> {
         info!(?name, "Removing container");
         docker
             .remove_container(
-                name,
+                id,
                 Some(RemoveContainerOptions {
                     force: true,
                     ..Default::default()
