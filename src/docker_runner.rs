@@ -171,7 +171,13 @@ impl Runner {
         let metrics_dir_c = metrics_dir.clone();
         let mut end_rx_clone = self.end_rx.clone();
         self.futures.push(tokio::spawn(async move {
-            let mut stats = docker.stats(&name_owned, Some(StatsOptions { stream: true, one_shot: false }));
+            let mut stats = docker.stats(
+                &name_owned,
+                Some(StatsOptions {
+                    stream: true,
+                    one_shot: false,
+                }),
+            );
             let mut stats_file =
                 File::create(&metrics_dir_c.join(format!("docker-{}.stat", name_owned)))
                     .expect("Failed to create stats file");
@@ -415,7 +421,8 @@ pub struct ContainerConfig {
     pub cpus: Option<f64>,
     pub memory: Option<i64>,
     /// Mount the given paths as tmpfs directories.
-    pub tmpfs: Option<Vec<String>>,
+    pub tmpfs: Vec<String>,
+    pub volumes: Vec<(String, String)>,
 }
 
 impl ContainerConfig {
@@ -437,16 +444,30 @@ impl ContainerConfig {
         }
         let cpu_period = 100000;
 
-        let mounts = self.tmpfs.as_ref().map(|tmpfs| {
-            tmpfs
-                .iter()
-                .map(|path| Mount {
-                    target: Some(path.clone()),
-                    typ: Some(MountTypeEnum::TMPFS),
-                    ..Default::default()
-                })
-                .collect()
-        });
+        let mut tmpfs_mounts = self
+            .tmpfs
+            .iter()
+            .map(|path| Mount {
+                target: Some(path.clone()),
+                typ: Some(MountTypeEnum::TMPFS),
+                ..Default::default()
+            })
+            .collect();
+
+        let mut volume_mounts = self
+            .volumes
+            .iter()
+            .map(|(host, target)| Mount {
+                target: Some(target.clone()),
+                source: Some(host.clone()),
+                typ: Some(MountTypeEnum::BIND),
+                ..Default::default()
+            })
+            .collect();
+
+        let mut mounts = Vec::new();
+        mounts.append(&mut tmpfs_mounts);
+        mounts.append(&mut volume_mounts);
 
         Config {
             image: Some(format!("{}:{}", self.image_name, self.image_tag)),
@@ -464,7 +485,7 @@ impl ContainerConfig {
                 cpu_period: self.cpus.map(|_| cpu_period),
                 cpu_quota: self.cpus.map(|cpus| (cpu_period as f64 * cpus) as i64),
                 memory: self.memory,
-                mounts,
+                mounts: Some(mounts),
                 ..Default::default()
             }),
             ..Default::default()
