@@ -546,12 +546,14 @@ pub async fn clean(prefix: &str) -> Result<(), bollard::errors::Error> {
         }))
         .await?;
     for container in containers {
+        let name = &container
+            .names
+            .and_then(|names| names.first().cloned())
+            .unwrap_or_default();
+        info!(?name, "Removing container");
         docker
             .remove_container(
-                &container
-                    .names
-                    .and_then(|names| names.first().cloned())
-                    .unwrap_or_default(),
+                name,
                 Some(RemoveContainerOptions {
                     force: true,
                     ..Default::default()
