@@ -8,8 +8,8 @@ use std::{
 
 use bollard::{
     container::{
-        Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StatsOptions,
-        StopContainerOptions, TopOptions,
+        Config, CreateContainerOptions, ListContainersOptions, LogsOptions, RemoveContainerOptions,
+        StatsOptions, StopContainerOptions, TopOptions,
     },
     image::CreateImageOptions,
     models::{HostConfig, Ipam, Mount, MountTypeEnum, PortBinding},
@@ -530,5 +530,34 @@ pub async fn pull_image(image_name: &str, image_tag: &str) -> Result<(), bollard
         )
         .try_collect::<Vec<_>>()
         .await?;
+    Ok(())
+}
+
+pub async fn clean(prefix: &str) -> Result<(), bollard::errors::Error> {
+    let docker = bollard::Docker::connect_with_local_defaults()?;
+    let mut filters = HashMap::new();
+    filters.insert("name", vec![prefix]);
+    let containers = docker
+        .list_containers(Some(ListContainersOptions {
+            all: true,
+            limit: None,
+            size: false,
+            filters,
+        }))
+        .await?;
+    for container in containers {
+        docker
+            .remove_container(
+                &container
+                    .names
+                    .and_then(|names| names.first().cloned())
+                    .unwrap_or_default(),
+                Some(RemoveContainerOptions {
+                    force: true,
+                    ..Default::default()
+                }),
+            )
+            .await?;
+    }
     Ok(())
 }
