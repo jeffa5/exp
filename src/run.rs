@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    ffi::OsString,
     fs::{create_dir_all, File},
     io,
     path::{Path, PathBuf},
@@ -62,11 +63,11 @@ async fn run_single<E: Experiment>(experiment: &E, experiment_dir: &Path) -> Res
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Environment {
-    hostname: String,
-    os: String,
-    release: String,
-    version: String,
-    architecture: String,
+    hostname: OsString,
+    os: OsString,
+    release: OsString,
+    version: OsString,
+    architecture: OsString,
     cpu_model_name: String,
     cpu_vendor_id: String,
     cpu_cores: usize,
@@ -75,7 +76,7 @@ pub struct Environment {
 }
 
 fn collect_environment_data(path: &Path) {
-    let utsname = nix::sys::utsname::uname();
+    let utsname = nix::sys::utsname::uname().unwrap();
     let cpuinfo = CpuInfo::new().unwrap();
     let meminfo = Meminfo::new().unwrap();
     let env = Environment {

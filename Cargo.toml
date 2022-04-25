@@ -6,9 +6,9 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1.42"
-bollard = "0.11.1"
+bollard = "0.12.0"
 chrono = "0.4.19"
-nix = "0.20.0"
+nix = "0.24.1"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.62"
 thiserror = "1.0.24"

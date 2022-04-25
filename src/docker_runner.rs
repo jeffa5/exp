@@ -12,7 +12,7 @@ use bollard::{
         StatsOptions, StopContainerOptions, TopOptions,
     },
     image::CreateImageOptions,
-    models::{HostConfig, Ipam, Mount, MountTypeEnum, PortBinding},
+    models::{HostConfig, Ipam, IpamConfig, Mount, MountTypeEnum, PortBinding},
     network::{CreateNetworkOptions, ListNetworksOptions},
     Docker,
 };
@@ -87,20 +87,16 @@ impl Runner {
                 .filter(|n| n.name.as_ref() == Some(network_name))
                 .count();
             if net_count == 0 {
-                let mut network_config = HashMap::new();
+                let mut network_config = IpamConfig::default();
                 if let Some(subnet) = &config.network_subnet {
-                    network_config.insert("Subnet".to_owned(), subnet.clone());
+                    network_config.subnet = Some(subnet.clone());
                 }
                 self.docker
                     .create_network(CreateNetworkOptions {
                         name: network_name.as_str(),
                         check_duplicate: true,
                         ipam: Ipam {
-                            config: if network_config.is_empty() {
-                                None
-                            } else {
-                                Some(vec![network_config])
-                            },
+                            config: Some(vec![network_config]),
                             ..Default::default()
                         },
                         ..Default::default()
@@ -155,10 +151,13 @@ impl Runner {
                         break
                     }
                     Some(item) = logs.next() => {
-                        if let Ok(item) = item {
-                            write!(logs_file, "{}", item).unwrap()
-                        } else {
-                            warn!("Error getting log line: {:?}", item)
+                        match item {
+                            Ok(item) => {
+                                write!(logs_file, "{}", item).unwrap();
+                            }
+                            Err(error) => {
+                                warn!(%error, "Error getting log line");
+                            }
                         }
                     }
                     else => break
@@ -185,13 +184,16 @@ impl Runner {
                 tokio::select! {
                     _ = end_rx_clone.changed() => break,
                     Some(stat) = stats.next() => {
-                        if let Ok(stat) = stat {
-                            let time = chrono::Utc::now().to_rfc3339();
-                            write!(stats_file, "{} ", time).unwrap();
-                            serde_json::to_writer(&mut stats_file, &stat).unwrap();
-                            writeln!(stats_file).unwrap();
-                        } else {
-                            warn!("Error getting stats statistics: {:?}", stat);
+                        match stat {
+                            Ok(stat) => {
+                                let time = chrono::Utc::now().to_rfc3339();
+                                write!(stats_file, "{} ", time).unwrap();
+                                serde_json::to_writer(&mut stats_file, &stat).unwrap();
+                                writeln!(stats_file).unwrap();
+                            }
+                            Err(error) => {
+                                warn!(%error, "Error getting stats statistics");
+                            }
                         }
                     }
                     else => break,
@@ -216,13 +218,16 @@ impl Runner {
                         let top = docker
                             .top_processes(&name_owned, Some(TopOptions { ps_args: "aux" }))
                             .await;
-                        if let Ok(top) = top {
-                            let time = chrono::Utc::now().to_rfc3339();
-                            write!(top_file, "{} ", time).unwrap();
-                            serde_json::to_writer(&mut top_file, &top).unwrap();
-                            writeln!(top_file).unwrap();
-                        }else {
-                            warn!("Error getting top statistics: {:?}", top);
+                        match top {
+                            Ok(top) => {
+                                let time = chrono::Utc::now().to_rfc3339();
+                                write!(top_file, "{} ", time).unwrap();
+                                serde_json::to_writer(&mut top_file, &top).unwrap();
+                                writeln!(top_file).unwrap();
+                            }
+                            Err(error) => {
+                                warn!(%error, "Error getting top statistics");
+                            }
                         }
                     }
                     else => break,
@@ -233,42 +238,42 @@ impl Runner {
 
     pub async fn finish(self) {
         let r = self.end_tx.send(());
-        if let Err(e) = r {
-            warn!("Error sending shutdown signal to monitoring tasks: {}", e)
+        if let Err(error) = r {
+            warn!(%error, "Error sending shutdown signal to monitoring tasks")
         }
         join_all(self.futures).await;
-        for c in self.containers {
+        for container in self.containers {
             let r = self
                 .docker
                 .stop_container(
-                    &c,
+                    &container,
                     Some(StopContainerOptions {
                         t: 10, // seconds until kill
                     }),
                 )
                 .await;
-            if let Err(e) = r {
-                warn!("Error stopping container '{}': {}", c, e)
+            if let Err(error) = r {
+                warn!(%error, %container, "Error stopping container")
             }
             let r = self
                 .docker
                 .remove_container(
-                    &c,
+                    &container,
                     Some(RemoveContainerOptions {
                         force: true,
                         ..Default::default()
                     }),
                 )
                 .await;
-            if let Err(e) = r {
-                warn!("Error removing container '{}': {}", c, e)
+            if let Err(error) = r {
+                warn!(%error, %container, "Error removing container")
             }
         }
 
-        for n in self.networks {
-            let r = self.docker.remove_network(&n).await;
-            if let Err(e) = r {
-                warn!("Error removing network '{}': {}", n, e)
+        for network in self.networks {
+            let r = self.docker.remove_network(&network).await;
+            if let Err(error) = r {
+                warn!(%error, %network, "Error removing network")
             }
         }
     }
