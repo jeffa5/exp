@@ -5,7 +5,7 @@ use std::{
 
 use chrono::Utc;
 use thiserror::Error;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 use crate::Experiment;
 
@@ -43,7 +43,7 @@ pub async fn analyse<E: Experiment>(
         results_dir.push(d.to_rfc3339());
         d.with_timezone(&Utc)
     };
-    info!("Using date: {}", date);
+    debug!("Using date: {}", date);
     analyse_single(experiment, date, &results_dir).await?;
     Ok(())
 }

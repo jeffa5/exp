@@ -8,7 +8,7 @@ use std::{
 use procfs::{kernel_config, ConfigSetting, CpuInfo, Meminfo};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::info;
+use tracing::debug;
 
 use crate::{Experiment, ExperimentConfiguration};
 
@@ -96,21 +96,21 @@ fn collect_environment_data(path: &Path) {
 
 fn create_experiment_dir(results_dir: &Path) -> Result<PathBuf, io::Error> {
     let exp_path = results_dir.join(chrono::Utc::now().to_rfc3339());
-    info!(path = ?exp_path, "Creating experiments directory");
+    debug!(path = ?exp_path, "Creating experiments directory");
     create_dir_all(&exp_path)?;
     Ok(exp_path)
 }
 
 fn create_config_dir(parent: &Path, i: usize, width: usize) -> Result<PathBuf, io::Error> {
     let config_path = parent.join(format!("configuration-{:0>width$}", i + 1, width = width));
-    info!(path = ?config_path, "Creating config directory");
+    debug!(path = ?config_path, "Creating config directory");
     create_dir_all(&config_path)?;
     Ok(config_path)
 }
 
 fn create_repeat_dir(parent: &Path, i: usize, width: usize) -> Result<PathBuf, io::Error> {
     let repeat_path = parent.join(format!("repeat-{:0>width$}", i + 1, width = width));
-    info!(path = ?repeat_path, "Creating repeat directory");
+    debug!(path = ?repeat_path, "Creating repeat directory");
     create_dir_all(&repeat_path)?;
     Ok(repeat_path)
 }

@@ -19,7 +19,7 @@ use bollard::{
 use futures::{future::join_all, stream::StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 // The docker runner for a particular experiment run
 // handles creation of resources and teardown after
@@ -496,7 +496,7 @@ impl ContainerConfig {
 fn create_config_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let conf_path = parent.join("config");
     if !conf_path.exists() {
-        info!(path = ?conf_path, "Creating config directory");
+        debug!(path = ?conf_path, "Creating config directory");
         create_dir_all(&conf_path)?;
     }
     Ok(conf_path)
@@ -505,7 +505,7 @@ fn create_config_dir(parent: &Path) -> Result<PathBuf, io::Error> {
 fn create_logs_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let logs_path = parent.join("logs");
     if !logs_path.exists() {
-        info!(path = ?logs_path, "Creating logs directory");
+        debug!(path = ?logs_path, "Creating logs directory");
         create_dir_all(&logs_path)?;
     }
     Ok(logs_path)
@@ -514,7 +514,7 @@ fn create_logs_dir(parent: &Path) -> Result<PathBuf, io::Error> {
 fn create_metrics_dir(parent: &Path) -> Result<PathBuf, io::Error> {
     let metrics_path = parent.join("metrics");
     if !metrics_path.exists() {
-        info!(path = ?metrics_path, "Creating metrics directory");
+        debug!(path = ?metrics_path, "Creating metrics directory");
         create_dir_all(&metrics_path)?;
     }
     Ok(metrics_path)
@@ -557,7 +557,7 @@ pub async fn clean(prefix: &str) -> Result<(), bollard::errors::Error> {
             .names
             .and_then(|names| names.first().cloned())
             .unwrap_or_default();
-        info!(?name, "Removing container");
+        debug!(?name, "Removing container");
         docker
             .remove_container(
                 id,
