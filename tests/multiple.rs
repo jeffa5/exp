@@ -53,7 +53,8 @@ impl Experiment for ExpA {
                 cpus: None,
                 memory: None,
                 pull: false,
-                tmpfs: Some(Vec::new()),
+                tmpfs: Vec::new(),
+                volumes: Vec::new(),
             })
             .await;
         tokio::time::sleep(Duration::from_secs(1)).await;
