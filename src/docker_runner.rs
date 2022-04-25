@@ -87,16 +87,18 @@ impl Runner {
                 .filter(|n| n.name.as_ref() == Some(network_name))
                 .count();
             if net_count == 0 {
-                let mut network_config = IpamConfig::default();
-                if let Some(subnet) = &config.network_subnet {
-                    network_config.subnet = Some(subnet.clone());
-                }
+                let network_config = config.network_subnet.as_ref().map(|subnet| {
+                    vec![IpamConfig {
+                        subnet: Some(subnet.clone()),
+                        ..Default::default()
+                    }]
+                });
                 self.docker
                     .create_network(CreateNetworkOptions {
                         name: network_name.as_str(),
                         check_duplicate: true,
                         ipam: Ipam {
-                            config: Some(vec![network_config]),
+                            config: network_config,
                             ..Default::default()
                         },
                         ..Default::default()
