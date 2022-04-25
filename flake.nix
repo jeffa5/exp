@@ -41,6 +41,7 @@
               cargo-insta
               crate2nix
               rust-analyzer
+              cargo-outdated
 
               rnix-lsp
               nixpkgs-fmt
