@@ -26,7 +26,7 @@ pub struct RunConfig {
 
 pub async fn run<E: Experiment>(experiment: &E, config: &RunConfig) -> Result<(), RunError> {
     let exp_path = create_experiment_dir(&config.results_dir)?;
-    println!("Running experiment with dir {}", exp_path.display());
+    debug!(dir=%exp_path.display(), "Running experiment");
 
     run_single(experiment, &exp_path).await?;
     Ok(())
@@ -45,7 +45,7 @@ async fn run_single<E: Experiment>(experiment: &E, experiment_dir: &Path) -> Res
         let repeats = config.repeats();
         let width = repeats.to_string().len();
         for j in 0..repeats {
-            println!(
+            debug!(
                 "Running configuration {}/{}, repeat {}/{}",
                 i + 1,
                 configurations.len(),
