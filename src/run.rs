@@ -63,11 +63,11 @@ async fn run_single<E: Experiment>(experiment: &E, experiment_dir: &Path) -> Res
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Environment {
-    hostname: OsString,
-    os: OsString,
-    release: OsString,
-    version: OsString,
-    architecture: OsString,
+    hostname: String,
+    os: String,
+    release: String,
+    version: String,
+    architecture: String,
     cpu_model_name: String,
     cpu_vendor_id: String,
     cpu_cores: usize,
@@ -80,11 +80,11 @@ fn collect_environment_data(path: &Path) {
     let cpuinfo = CpuInfo::new().unwrap();
     let meminfo = Meminfo::new().unwrap();
     let env = Environment {
-        hostname: utsname.nodename().to_owned(),
-        os: utsname.sysname().to_owned(),
-        release: utsname.release().to_owned(),
-        version: utsname.version().to_owned(),
-        architecture: utsname.machine().to_owned(),
+        hostname: utsname.nodename().to_string_lossy().to_string(),
+        os: utsname.sysname().to_string_lossy().to_string(),
+        release: utsname.release().to_string_lossy().to_string(),
+        version: utsname.version().to_string_lossy().to_string(),
+        architecture: utsname.machine().to_string_lossy().to_string(),
         cpu_model_name: cpuinfo.model_name(0).unwrap().to_owned(),
         cpu_vendor_id: cpuinfo.vendor_id(0).unwrap().to_owned(),
         cpu_cores: cpuinfo.num_cores(),
