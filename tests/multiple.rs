@@ -57,8 +57,9 @@ impl Experiment for ExpA {
                 volumes: Vec::new(),
             })
             .await;
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        runner.finish().await
+        tokio::time::sleep(Duration::from_secs(5)).await;
+        runner.finish().await;
+        panic!("todo");
     }
     async fn post_run(&self, _: &Self::Configuration) {
         println!("postrun a")
@@ -85,10 +86,10 @@ impl Experiment for ExpA {
                 }
                 let mut stats = HashMap::new();
                 for stat_file in read_dir(repeat_dir.join("metrics")).unwrap() {
-                    if let Ok(stat) =
+                    if let Ok((container_name, stat)) =
                         exp::docker_runner::Stats::from_file(&stat_file.unwrap().path())
                     {
-                        stats.insert(stat.container_name.clone(), stat);
+                        stats.insert(container_name.clone(), stat);
                     }
                 }
                 let mut tops = HashMap::new();
