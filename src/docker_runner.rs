@@ -46,11 +46,11 @@ impl Runner {
             .expect("Failed to get docker version");
         let version_file = File::create(config_dir.join("docker-version.json"))
             .expect("Failed to create docker version file");
-        serde_json::to_writer(version_file, &version).unwrap();
+        serde_json::to_writer_pretty(version_file, &version).unwrap();
         let info = docker.info().await.expect("Failed to get docker info");
         let info_file = File::create(config_dir.join("docker-info.json"))
             .expect("Failed to create docker info file");
-        serde_json::to_writer(info_file, &info).unwrap();
+        serde_json::to_writer_pretty(info_file, &info).unwrap();
         let (end_tx, end_rx) = tokio::sync::watch::channel(());
         Self {
             containers: Vec::new(),
@@ -71,7 +71,7 @@ impl Runner {
             create_metrics_dir(&self.repeat_dir).expect("Failed to create metrics dir");
         let config_file = File::create(&config_dir.join(format!("docker-{}.json", config.name)))
             .expect("Failed to create docker config file");
-        serde_json::to_writer(config_file, &config).expect("Failed to write docker config");
+        serde_json::to_writer_pretty(config_file, &config).expect("Failed to write docker config");
 
         if let Some(network_name) = &config.network {
             let mut net_filters = HashMap::new();
