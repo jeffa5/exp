@@ -521,7 +521,7 @@ impl Stats {
             network,
             mut networks,
             memory_stats,
-            blkio_stats,
+            blkio_stats: _,
             cpu_stats,
             precpu_stats,
             storage_stats,
