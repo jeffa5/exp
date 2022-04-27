@@ -161,7 +161,12 @@ impl Runner {
                                 write!(logs_file, "{}", item).unwrap();
                             }
                             Err(error) => {
-                                warn!(%error, "Error getting log line");
+                                if let bollard::errors::Error::DockerResponseServerError{status_code: 409, message:_} = error {
+                                    // container is no longer running
+                                    break;
+                                } else {
+                                    warn!(%error, "Error getting log line");
+                                }
                             }
                         }
                     }
@@ -196,7 +201,12 @@ impl Runner {
                                 }
                             }
                             Err(error) => {
-                                warn!(%error, "Error getting stats statistics");
+                                if let bollard::errors::Error::DockerResponseServerError{status_code: 409, message:_} = error {
+                                    // container is no longer running
+                                    break;
+                                } else {
+                                    warn!(%error, "Error getting stats statistics");
+                                }
                             }
                         }
                     }
@@ -239,7 +249,12 @@ impl Runner {
                                 }
                             }
                             Err(error) => {
-                                warn!(%error, "Error getting top statistics");
+                                if let bollard::errors::Error::DockerResponseServerError{status_code: 409, message:_} = error {
+                                    // container is no longer running
+                                    break;
+                                } else {
+                                    warn!(%error, "Error getting top statistics");
+                                }
                             }
                         }
                     }
