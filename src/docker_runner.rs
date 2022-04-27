@@ -191,7 +191,6 @@ impl Runner {
                         match stat {
                             Ok(stats) => {
                                 let stats = Stats::from_bollard(stats);
-                                println!("{:?}", stats);
                                 for stats in stats {
                                     writer.serialize(stats).unwrap();
                                 }
