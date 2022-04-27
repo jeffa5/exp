@@ -518,7 +518,7 @@ impl Stats {
             num_procs,
             pids_stats,
             network,
-            mut networks,
+            networks,
             memory_stats,
             blkio_stats: _,
             cpu_stats,
@@ -545,7 +545,7 @@ impl Stats {
             }
         });
 
-        let mut networks = networks.as_mut().unwrap().iter();
+        let mut networks = networks.iter().map(|v| v.iter()).flatten();
         // let mut blio_stats = blkio_stats.as_mut().unwrap().iter();
 
         let networks = networks.next();
