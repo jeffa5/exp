@@ -1,3 +1,6 @@
+use bollard::container::MemoryStatsStats;
+use chrono::DateTime;
+use chrono::Utc;
 use std::{
     collections::HashMap,
     fs::{create_dir_all, File},
@@ -179,19 +182,19 @@ impl Runner {
                     one_shot: false,
                 }),
             );
-            let mut stats_file =
-                File::create(&metrics_dir_c.join(format!("docker-{}.stat", name_owned)))
-                    .expect("Failed to create stats file");
+            let stats_file_name = metrics_dir_c.join(format!("docker-{}-stat.csv", name_owned));
+            let mut writer = csv::Writer::from_path(stats_file_name).unwrap();
             loop {
                 tokio::select! {
                     _ = end_rx_clone.changed() => break,
                     Some(stat) = stats.next() => {
                         match stat {
-                            Ok(stat) => {
-                                let time = chrono::Utc::now().to_rfc3339();
-                                write!(stats_file, "{} ", time).unwrap();
-                                serde_json::to_writer(&mut stats_file, &stat).unwrap();
-                                writeln!(stats_file).unwrap();
+                            Ok(stats) => {
+                                let stats = Stats::from_bollard(stats);
+                                println!("{:?}", stats);
+                                for stats in stats {
+                                    writer.serialize(stats).unwrap();
+                                }
                             }
                             Err(error) => {
                                 warn!(%error, "Error getting stats statistics");
@@ -201,6 +204,7 @@ impl Runner {
                     else => break,
                 }
             }
+            writer.flush().unwrap();
         }));
 
         let docker = self.docker.clone();
@@ -332,47 +336,394 @@ impl Logs {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Stats {
-    pub container_name: String,
-    pub lines: Vec<(chrono::DateTime<chrono::Utc>, bollard::container::Stats)>,
+    // from bollard::container::Stats
+    pub read: DateTime<Utc>,
+    pub preread: DateTime<Utc>,
+    pub num_procs: u32,
+    pub pids_stats_current: Option<u64>,
+    pub pids_stats_limit: Option<u64>,
+    pub network_rx_dropped: Option<u64>,
+    pub network_rx_bytes: Option<u64>,
+    pub network_rx_errors: Option<u64>,
+    pub network_rx_packets: Option<u64>,
+    pub network_tx_packets: Option<u64>,
+    pub network_tx_dropped: Option<u64>,
+    pub network_tx_errors: Option<u64>,
+    pub network_tx_bytes: Option<u64>,
+    // flattened map from networks
+    pub networks_name: Option<String>,
+    pub networks_rx_dropped: Option<u64>,
+    pub networks_rx_bytes: Option<u64>,
+    pub networks_rx_errors: Option<u64>,
+    pub networks_rx_packets: Option<u64>,
+    pub networks_tx_packets: Option<u64>,
+    pub networks_tx_dropped: Option<u64>,
+    pub networks_tx_errors: Option<u64>,
+    pub networks_tx_bytes: Option<u64>,
+
+    // v1 memory stats
+    pub memory_stats_stats_v1_cache: Option<u64>,
+    pub memory_stats_stats_v1_dirty: Option<u64>,
+    pub memory_stats_stats_v1_mapped_file: Option<u64>,
+    pub memory_stats_stats_v1_total_inactive_file: Option<u64>,
+    pub memory_stats_stats_v1_pgpgout: Option<u64>,
+    pub memory_stats_stats_v1_rss: Option<u64>,
+    pub memory_stats_stats_v1_total_mapped_file: Option<u64>,
+    pub memory_stats_stats_v1_writeback: Option<u64>,
+    pub memory_stats_stats_v1_unevictable: Option<u64>,
+    pub memory_stats_stats_v1_pgpgin: Option<u64>,
+    pub memory_stats_stats_v1_total_unevictable: Option<u64>,
+    pub memory_stats_stats_v1_pgmajfault: Option<u64>,
+    pub memory_stats_stats_v1_total_rss: Option<u64>,
+    pub memory_stats_stats_v1_total_rss_huge: Option<u64>,
+    pub memory_stats_stats_v1_total_writeback: Option<u64>,
+    pub memory_stats_stats_v1_total_inactive_anon: Option<u64>,
+    pub memory_stats_stats_v1_rss_huge: Option<u64>,
+    pub memory_stats_stats_v1_hierarchical_memory_limit: Option<u64>,
+    pub memory_stats_stats_v1_total_pgfault: Option<u64>,
+    pub memory_stats_stats_v1_total_active_file: Option<u64>,
+    pub memory_stats_stats_v1_active_anon: Option<u64>,
+    pub memory_stats_stats_v1_total_active_anon: Option<u64>,
+    pub memory_stats_stats_v1_total_pgpgout: Option<u64>,
+    pub memory_stats_stats_v1_total_cache: Option<u64>,
+    pub memory_stats_stats_v1_total_dirty: Option<u64>,
+    pub memory_stats_stats_v1_inactive_anon: Option<u64>,
+    pub memory_stats_stats_v1_active_file: Option<u64>,
+    pub memory_stats_stats_v1_pgfault: Option<u64>,
+    pub memory_stats_stats_v1_inactive_file: Option<u64>,
+    pub memory_stats_stats_v1_total_pgmajfault: Option<u64>,
+    pub memory_stats_stats_v1_total_pgpgin: Option<u64>,
+    pub memory_stats_stats_v1_hierarchical_memsw_limit: Option<u64>, // only on OSX
+    pub memory_stats_stats_v1_shmem: Option<u64>, // only on linux kernel > 4.15.0-1106
+    pub memory_stats_stats_v1_total_shmem: Option<u64>, // only on linux kernel > 4.15.0-1106
+
+    // v2 memory stats
+    pub memory_stats_stats_v2_anon: Option<u64>,
+    pub memory_stats_stats_v2_file: Option<u64>,
+    pub memory_stats_stats_v2_kernel_stack: Option<u64>,
+    pub memory_stats_stats_v2_slab: Option<u64>,
+    pub memory_stats_stats_v2_sock: Option<u64>,
+    pub memory_stats_stats_v2_shmem: Option<u64>,
+    pub memory_stats_stats_v2_file_mapped: Option<u64>,
+    pub memory_stats_stats_v2_file_dirty: Option<u64>,
+    pub memory_stats_stats_v2_file_writeback: Option<u64>,
+    pub memory_stats_stats_v2_anon_thp: Option<u64>,
+    pub memory_stats_stats_v2_inactive_anon: Option<u64>,
+    pub memory_stats_stats_v2_active_anon: Option<u64>,
+    pub memory_stats_stats_v2_inactive_file: Option<u64>,
+    pub memory_stats_stats_v2_active_file: Option<u64>,
+    pub memory_stats_stats_v2_unevictable: Option<u64>,
+    pub memory_stats_stats_v2_slab_reclaimable: Option<u64>,
+    pub memory_stats_stats_v2_slab_unreclaimable: Option<u64>,
+    pub memory_stats_stats_v2_pgfault: Option<u64>,
+    pub memory_stats_stats_v2_pgmajfault: Option<u64>,
+    pub memory_stats_stats_v2_workingset_refault: Option<u64>,
+    pub memory_stats_stats_v2_workingset_activate: Option<u64>,
+    pub memory_stats_stats_v2_workingset_nodereclaim: Option<u64>,
+    pub memory_stats_stats_v2_pgrefill: Option<u64>,
+    pub memory_stats_stats_v2_pgscan: Option<u64>,
+    pub memory_stats_stats_v2_pgsteal: Option<u64>,
+    pub memory_stats_stats_v2_pgactivate: Option<u64>,
+    pub memory_stats_stats_v2_pgdeactivate: Option<u64>,
+    pub memory_stats_stats_v2_pglazyfree: Option<u64>,
+    pub memory_stats_stats_v2_pglazyfreed: Option<u64>,
+    pub memory_stats_stats_v2_thp_fault_alloc: Option<u64>,
+    pub memory_stats_stats_v2_thp_collapse_alloc: Option<u64>,
+
+    pub memory_stats_max_usage: Option<u64>,
+    pub memory_stats_usage: Option<u64>,
+    pub memory_stats_failcnt: Option<u64>,
+    pub memory_stats_limit: Option<u64>,
+    pub memory_stats_commit: Option<u64>,
+    pub memory_stats_commit_peak: Option<u64>,
+    pub memory_stats_commitbytes: Option<u64>,
+    pub memory_stats_commitpeakbytes: Option<u64>,
+    pub memory_stats_privateworkingset: Option<u64>,
+
+    // TODO: re-enable this
+    //     pub blkio_stats_index: u32,
+    //     // per blkio_stats_index
+    //     pub blkio_stats_io_service_bytes_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_service_bytes_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_service_bytes_recursive_op: Option<String>,
+    //     pub blkio_stats_io_service_bytes_recursive_value: Option<u64>,
+    //     pub blkio_stats_io_serviced_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_serviced_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_serviced_recursive_op: Option<String>,
+    //     pub blkio_stats_io_serviced_recursive_value: Option<u64>,
+    //     pub blkio_stats_io_queue_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_queue_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_queue_recursive_op: Option<String>,
+    //     pub blkio_stats_io_queue_recursive_value: Option<u64>,
+    //     pub blkio_stats_io_service_time_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_service_time_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_service_time_recursive_op: Option<String>,
+    //     pub blkio_stats_io_service_time_recursive_value: Option<u64>,
+    //     pub blkio_stats_io_wait_time_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_wait_time_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_wait_time_recursive_op: Option<String>,
+    //     pub blkio_stats_io_wait_time_recursive_value: Option<u64>,
+    //     pub blkio_stats_io_merged_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_merged_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_merged_recursive_op: Option<String>,
+    //     pub blkio_stats_io_merged_recursive_value: Option<u64>,
+    //     pub blkio_stats_io_time_recursive_major: Option<u64>,
+    //     pub blkio_stats_io_time_recursive_minor: Option<u64>,
+    //     pub blkio_stats_io_time_recursive_op: Option<String>,
+    //     pub blkio_stats_io_time_recursive_value: Option<u64>,
+    //     pub blkio_stats_sectors_recursive_major: Option<u64>,
+    //     pub blkio_stats_sectors_recursive_minor: Option<u64>,
+    //     pub blkio_stats_sectors_recursive_op: Option<String>,
+    //     pub blkio_stats_sectors_recursive_value: Option<u64>,
+    // TODO: re-enable this
+    // pub cpu_stats_cpu_usage_percpu_usage: Option<Vec<u64>>,
+    pub cpu_stats_cpu_usage_usage_in_usermode: u64,
+    pub cpu_stats_cpu_usage_total_usage: u64,
+    pub cpu_stats_cpu_usage_usage_in_kernelmode: u64,
+
+    pub cpu_stats_system_cpu_usage: Option<u64>,
+    pub cpu_stats_online_cpus: Option<u64>,
+
+    pub cpu_stats_throttling_data_periods: u64,
+    pub cpu_stats_throttling_data_throttled_periods: u64,
+    pub cpu_stats_throttling_data_throttled_time: u64,
+
+    // TODO: re-enable this
+    // pub precpu_stats_cpu_usage_percpu_usage: Option<Vec<u64>>,
+    pub precpu_stats_cpu_usage_usage_in_usermode: u64,
+    pub precpu_stats_cpu_usage_total_usage: u64,
+    pub precpu_stats_cpu_usage_usage_in_kernelmode: u64,
+
+    pub precpu_stats_system_cpu_usage: Option<u64>,
+    pub precpu_stats_online_cpus: Option<u64>,
+    pub precpu_stats_throttling_data_periods: u64,
+    pub precpu_stats_throttling_data_throttled_periods: u64,
+    pub precpu_stats_throttling_data_throttled_time: u64,
+
+    pub storage_stats_read_count_normalized: Option<u64>,
+    pub storage_stats_read_size_bytes: Option<u64>,
+    pub storage_stats_write_count_normalized: Option<u64>,
+    pub storage_stats_write_size_bytes: Option<u64>,
+
+    pub name: String,
+    pub id: String,
 }
 
 impl Stats {
-    pub fn from_file(path: &Path) -> io::Result<Self> {
-        if let Some(file_name) = path.file_stem() {
-            if path.extension().unwrap_or_default().to_string_lossy() == "stat" {
-                if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
-                    let file = File::open(path)?;
-                    let mut lines = Vec::new();
-                    for line in std::io::BufReader::new(file).lines() {
-                        let line = line.unwrap();
-                        let split = line.splitn(2, ' ').collect::<Vec<_>>();
-                        if let [date, text] = split[..] {
-                            let date = chrono::DateTime::parse_from_rfc3339(date)
-                                .unwrap()
-                                .with_timezone(&chrono::Utc);
-                            let stats: bollard::container::Stats =
-                                serde_json::from_str(text).unwrap();
-                            lines.push((date, stats));
-                        }
-                    }
-                    Ok(Stats {
-                        container_name: name.to_owned(),
-                        lines,
-                    })
-                } else {
-                    Err(io::Error::new(
-                        ErrorKind::InvalidInput,
-                        "filename should start with docker-",
-                    ))
-                }
+    fn from_bollard(stats: bollard::container::Stats) -> Vec<Stats> {
+        let bollard::container::Stats {
+            read,
+            preread,
+            num_procs,
+            pids_stats,
+            network,
+            mut networks,
+            memory_stats,
+            blkio_stats,
+            cpu_stats,
+            precpu_stats,
+            storage_stats,
+            name,
+            id,
+        } = stats;
+
+        let mut v = Vec::new();
+
+        let memv1 = memory_stats.stats.and_then(|v| {
+            if let MemoryStatsStats::V1(v1) = v {
+                Some(v1)
             } else {
-                Err(io::Error::new(ErrorKind::InvalidInput, "wrong file format"))
+                None
             }
-        } else {
-            Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
-        }
+        });
+        let memv2 = memory_stats.stats.and_then(|v| {
+            if let MemoryStatsStats::V2(v2) = v {
+                Some(v2)
+            } else {
+                None
+            }
+        });
+
+        let mut networks = networks.as_mut().unwrap().iter();
+        // let mut blio_stats = blkio_stats.as_mut().unwrap().iter();
+
+        let networks = networks.next();
+        let stat = Stats {
+            read,
+            preread,
+            num_procs,
+            pids_stats_current: pids_stats.current,
+            pids_stats_limit: pids_stats.limit,
+            network_rx_dropped: network.map(|v| v.rx_dropped),
+            network_rx_bytes: network.map(|v| v.rx_bytes),
+            network_rx_errors: network.map(|v| v.rx_errors),
+            network_rx_packets: network.map(|v| v.rx_packets),
+            network_tx_packets: network.map(|v| v.tx_packets),
+            network_tx_dropped: network.map(|v| v.tx_dropped),
+            network_tx_errors: network.map(|v| v.tx_errors),
+            network_tx_bytes: network.map(|v| v.tx_bytes),
+
+            networks_name: networks.map(|n| n.0.clone()),
+            networks_rx_dropped: networks.map(|n| n.1.rx_dropped),
+            networks_rx_bytes: networks.map(|n| n.1.rx_bytes),
+            networks_rx_errors: networks.map(|n| n.1.rx_errors),
+            networks_rx_packets: networks.map(|n| n.1.rx_packets),
+            networks_tx_packets: networks.map(|n| n.1.tx_packets),
+            networks_tx_dropped: networks.map(|n| n.1.tx_dropped),
+            networks_tx_errors: networks.map(|n| n.1.tx_errors),
+            networks_tx_bytes: networks.map(|n| n.1.tx_bytes),
+
+            memory_stats_stats_v1_cache: memv1.map(|v| v.cache),
+            memory_stats_stats_v1_dirty: memv1.map(|v| v.dirty),
+            memory_stats_stats_v1_mapped_file: memv1.map(|v| v.mapped_file),
+            memory_stats_stats_v1_total_inactive_file: memv1.map(|v| v.total_inactive_file),
+            memory_stats_stats_v1_pgpgout: memv1.map(|v| v.pgpgout),
+            memory_stats_stats_v1_rss: memv1.map(|v| v.rss),
+            memory_stats_stats_v1_total_mapped_file: memv1.map(|v| v.total_mapped_file),
+            memory_stats_stats_v1_writeback: memv1.map(|v| v.writeback),
+            memory_stats_stats_v1_unevictable: memv1.map(|v| v.unevictable),
+            memory_stats_stats_v1_pgpgin: memv1.map(|v| v.pgpgin),
+            memory_stats_stats_v1_total_unevictable: memv1.map(|v| v.total_unevictable),
+            memory_stats_stats_v1_pgmajfault: memv1.map(|v| v.pgmajfault),
+            memory_stats_stats_v1_total_rss: memv1.map(|v| v.total_rss),
+            memory_stats_stats_v1_total_rss_huge: memv1.map(|v| v.total_rss_huge),
+            memory_stats_stats_v1_total_writeback: memv1.map(|v| v.total_writeback),
+            memory_stats_stats_v1_total_inactive_anon: memv1.map(|v| v.total_inactive_anon),
+            memory_stats_stats_v1_rss_huge: memv1.map(|v| v.rss_huge),
+            memory_stats_stats_v1_hierarchical_memory_limit: memv1
+                .map(|v| v.hierarchical_memory_limit),
+            memory_stats_stats_v1_total_pgfault: memv1.map(|v| v.total_pgfault),
+            memory_stats_stats_v1_total_active_file: memv1.map(|v| v.total_active_file),
+            memory_stats_stats_v1_active_anon: memv1.map(|v| v.active_anon),
+            memory_stats_stats_v1_total_active_anon: memv1.map(|v| v.total_active_anon),
+            memory_stats_stats_v1_total_pgpgout: memv1.map(|v| v.total_pgpgout),
+            memory_stats_stats_v1_total_cache: memv1.map(|v| v.total_cache),
+            memory_stats_stats_v1_total_dirty: memv1.map(|v| v.total_dirty),
+            memory_stats_stats_v1_inactive_anon: memv1.map(|v| v.inactive_anon),
+            memory_stats_stats_v1_active_file: memv1.map(|v| v.active_file),
+            memory_stats_stats_v1_pgfault: memv1.map(|v| v.pgfault),
+            memory_stats_stats_v1_inactive_file: memv1.map(|v| v.inactive_file),
+            memory_stats_stats_v1_total_pgmajfault: memv1.map(|v| v.total_pgmajfault),
+            memory_stats_stats_v1_total_pgpgin: memv1.map(|v| v.total_pgpgin),
+            memory_stats_stats_v1_hierarchical_memsw_limit: memv1
+                .and_then(|v| v.hierarchical_memsw_limit),
+            memory_stats_stats_v1_shmem: memv1.and_then(|v| v.shmem),
+            memory_stats_stats_v1_total_shmem: memv1.and_then(|v| v.total_shmem),
+
+            memory_stats_stats_v2_anon: memv2.map(|v| v.anon),
+            memory_stats_stats_v2_file: memv2.map(|v| v.file),
+            memory_stats_stats_v2_kernel_stack: memv2.map(|v| v.kernel_stack),
+            memory_stats_stats_v2_slab: memv2.map(|v| v.slab),
+            memory_stats_stats_v2_sock: memv2.map(|v| v.sock),
+            memory_stats_stats_v2_shmem: memv2.map(|v| v.shmem),
+            memory_stats_stats_v2_file_mapped: memv2.map(|v| v.file_mapped),
+            memory_stats_stats_v2_file_dirty: memv2.map(|v| v.file_dirty),
+            memory_stats_stats_v2_file_writeback: memv2.map(|v| v.file_writeback),
+            memory_stats_stats_v2_anon_thp: memv2.map(|v| v.anon_thp),
+            memory_stats_stats_v2_inactive_anon: memv2.map(|v| v.inactive_anon),
+            memory_stats_stats_v2_active_anon: memv2.map(|v| v.active_anon),
+            memory_stats_stats_v2_inactive_file: memv2.map(|v| v.inactive_file),
+            memory_stats_stats_v2_active_file: memv2.map(|v| v.active_file),
+            memory_stats_stats_v2_unevictable: memv2.map(|v| v.unevictable),
+            memory_stats_stats_v2_slab_reclaimable: memv2.map(|v| v.slab_reclaimable),
+            memory_stats_stats_v2_slab_unreclaimable: memv2.map(|v| v.slab_unreclaimable),
+            memory_stats_stats_v2_pgfault: memv2.map(|v| v.pgfault),
+            memory_stats_stats_v2_pgmajfault: memv2.map(|v| v.pgmajfault),
+            memory_stats_stats_v2_workingset_refault: memv2.map(|v| v.workingset_refault),
+            memory_stats_stats_v2_workingset_activate: memv2.map(|v| v.workingset_activate),
+            memory_stats_stats_v2_workingset_nodereclaim: memv2.map(|v| v.workingset_nodereclaim),
+            memory_stats_stats_v2_pgrefill: memv2.map(|v| v.pgrefill),
+            memory_stats_stats_v2_pgscan: memv2.map(|v| v.pgscan),
+            memory_stats_stats_v2_pgsteal: memv2.map(|v| v.pgsteal),
+            memory_stats_stats_v2_pgactivate: memv2.map(|v| v.pgactivate),
+            memory_stats_stats_v2_pgdeactivate: memv2.map(|v| v.pgdeactivate),
+            memory_stats_stats_v2_pglazyfree: memv2.map(|v| v.pglazyfree),
+            memory_stats_stats_v2_pglazyfreed: memv2.map(|v| v.pglazyfreed),
+            memory_stats_stats_v2_thp_fault_alloc: memv2.map(|v| v.thp_fault_alloc),
+            memory_stats_stats_v2_thp_collapse_alloc: memv2.map(|v| v.thp_collapse_alloc),
+
+            memory_stats_max_usage: memory_stats.max_usage,
+            memory_stats_usage: memory_stats.usage,
+            memory_stats_failcnt: memory_stats.failcnt,
+            memory_stats_limit: memory_stats.limit,
+            memory_stats_commit: memory_stats.commit,
+            memory_stats_commit_peak: memory_stats.commit_peak,
+            memory_stats_commitbytes: memory_stats.commitbytes,
+            memory_stats_commitpeakbytes: memory_stats.commitpeakbytes,
+            memory_stats_privateworkingset: memory_stats.privateworkingset,
+
+            // blkio_stats_index: todo!(),
+            // blkio_stats_io_service_bytes_recursive_major: todo!(),
+            // blkio_stats_io_service_bytes_recursive_minor: todo!(),
+            // blkio_stats_io_service_bytes_recursive_op: todo!(),
+            // blkio_stats_io_service_bytes_recursive_value: todo!(),
+            // blkio_stats_io_serviced_recursive_major: todo!(),
+            // blkio_stats_io_serviced_recursive_minor: todo!(),
+            // blkio_stats_io_serviced_recursive_op: todo!(),
+            // blkio_stats_io_serviced_recursive_value: todo!(),
+            // blkio_stats_io_queue_recursive_major: todo!(),
+            // blkio_stats_io_queue_recursive_minor: todo!(),
+            // blkio_stats_io_queue_recursive_op: todo!(),
+            // blkio_stats_io_queue_recursive_value: todo!(),
+            // blkio_stats_io_service_time_recursive_major: todo!(),
+            // blkio_stats_io_service_time_recursive_minor: todo!(),
+            // blkio_stats_io_service_time_recursive_op: todo!(),
+            // blkio_stats_io_service_time_recursive_value: todo!(),
+            // blkio_stats_io_wait_time_recursive_major: todo!(),
+            // blkio_stats_io_wait_time_recursive_minor: todo!(),
+            // blkio_stats_io_wait_time_recursive_op: todo!(),
+            // blkio_stats_io_wait_time_recursive_value: todo!(),
+            // blkio_stats_io_merged_recursive_major: todo!(),
+            // blkio_stats_io_merged_recursive_minor: todo!(),
+            // blkio_stats_io_merged_recursive_op: todo!(),
+            // blkio_stats_io_merged_recursive_value: todo!(),
+            // blkio_stats_io_time_recursive_major: todo!(),
+            // blkio_stats_io_time_recursive_minor: todo!(),
+            // blkio_stats_io_time_recursive_op: todo!(),
+            // blkio_stats_io_time_recursive_value: todo!(),
+            // blkio_stats_sectors_recursive_major: todo!(),
+            // blkio_stats_sectors_recursive_minor: todo!(),
+            // blkio_stats_sectors_recursive_op: todo!(),
+            // blkio_stats_sectors_recursive_value: todo!(),
+            // cpu_stats_cpu_usage_percpu_usage: cpu_stats.cpu_usage.percpu_usage,
+            cpu_stats_cpu_usage_usage_in_usermode: cpu_stats.cpu_usage.usage_in_usermode,
+            cpu_stats_cpu_usage_total_usage: cpu_stats.cpu_usage.total_usage,
+            cpu_stats_cpu_usage_usage_in_kernelmode: cpu_stats.cpu_usage.usage_in_kernelmode,
+            cpu_stats_system_cpu_usage: cpu_stats.system_cpu_usage,
+            cpu_stats_online_cpus: cpu_stats.online_cpus,
+            cpu_stats_throttling_data_periods: cpu_stats.throttling_data.periods,
+            cpu_stats_throttling_data_throttled_periods: cpu_stats
+                .throttling_data
+                .throttled_periods,
+            cpu_stats_throttling_data_throttled_time: cpu_stats.throttling_data.throttled_time,
+
+            // precpu_stats_cpu_usage_percpu_usage: precpu_stats.cpu_usage.percpu_usage,
+            precpu_stats_cpu_usage_usage_in_usermode: precpu_stats.cpu_usage.usage_in_usermode,
+            precpu_stats_cpu_usage_total_usage: precpu_stats.cpu_usage.total_usage,
+            precpu_stats_cpu_usage_usage_in_kernelmode: precpu_stats.cpu_usage.usage_in_kernelmode,
+
+            precpu_stats_system_cpu_usage: precpu_stats.system_cpu_usage,
+            precpu_stats_online_cpus: precpu_stats.online_cpus,
+            precpu_stats_throttling_data_periods: precpu_stats.throttling_data.periods,
+            precpu_stats_throttling_data_throttled_periods: precpu_stats
+                .throttling_data
+                .throttled_periods,
+            precpu_stats_throttling_data_throttled_time: precpu_stats
+                .throttling_data
+                .throttled_time,
+
+            storage_stats_read_count_normalized: storage_stats.read_count_normalized,
+            storage_stats_read_size_bytes: storage_stats.read_size_bytes,
+            storage_stats_write_count_normalized: storage_stats.write_count_normalized,
+            storage_stats_write_size_bytes: storage_stats.write_size_bytes,
+            name,
+            id,
+        };
+        v.push(stat);
+
+        v
     }
 }
 
