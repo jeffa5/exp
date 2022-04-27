@@ -210,9 +210,9 @@ impl Runner {
             let interval = tokio::time::interval(std::time::Duration::from_secs(1));
             tokio::pin!(interval);
 
-            let mut top_file =
-                File::create(&metrics_dir.join(format!("docker-{}.top", name_owned)))
-                    .expect("Failed to create top file");
+            let top_file = metrics_dir.join(format!("docker-{}-top.csv", name_owned));
+            let mut writer = csv::Writer::from_path(top_file).unwrap();
+            let mut written_header = false;
             loop {
                 tokio::select! {
                     _ = end_rx_clone.changed() => break,
@@ -222,10 +222,18 @@ impl Runner {
                             .await;
                         match top {
                             Ok(top) => {
-                                let time = chrono::Utc::now().to_rfc3339();
-                                write!(top_file, "{} ", time).unwrap();
-                                serde_json::to_writer(&mut top_file, &top).unwrap();
-                                writeln!(top_file).unwrap();
+                                if !written_header {
+                                    let mut titles = top.titles.unwrap();
+                                    titles.push("timestamp_nanos".to_owned());
+                                    writer.write_record(titles).unwrap();
+                                    written_header=true;
+                                }
+                                let now = chrono::Utc::now().timestamp_nanos().to_string();
+                                for process in top.processes .unwrap(){
+                                    let mut process= process;
+                                    process.push(now.clone());
+                                    writer.write_record(process).unwrap();
+                                }
                             }
                             Err(error) => {
                                 warn!(%error, "Error getting top statistics");
@@ -235,6 +243,7 @@ impl Runner {
                     else => break,
                 }
             }
+            writer.flush().unwrap();
         }));
     }
 
@@ -349,53 +358,6 @@ impl Stats {
                         }
                     }
                     Ok(Stats {
-                        container_name: name.to_owned(),
-                        lines,
-                    })
-                } else {
-                    Err(io::Error::new(
-                        ErrorKind::InvalidInput,
-                        "filename should start with docker-",
-                    ))
-                }
-            } else {
-                Err(io::Error::new(ErrorKind::InvalidInput, "wrong file format"))
-            }
-        } else {
-            Err(io::Error::new(ErrorKind::NotFound, "missing file_stem"))
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Tops {
-    pub container_name: String,
-    pub lines: Vec<(
-        chrono::DateTime<chrono::Utc>,
-        bollard::models::ContainerTopResponse,
-    )>,
-}
-
-impl Tops {
-    pub fn from_file(path: &Path) -> io::Result<Self> {
-        if let Some(file_name) = path.file_stem() {
-            if path.extension().unwrap_or_default().to_string_lossy() == "stat" {
-                if let Some(name) = file_name.to_string_lossy().strip_prefix("docker-") {
-                    let file = File::open(path)?;
-                    let mut lines = Vec::new();
-                    for line in std::io::BufReader::new(file).lines() {
-                        let line = line.unwrap();
-                        let split = line.splitn(2, ' ').collect::<Vec<_>>();
-                        if let [date, text] = split[..] {
-                            let date = chrono::DateTime::parse_from_rfc3339(date)
-                                .unwrap()
-                                .with_timezone(&chrono::Utc);
-                            let top: bollard::models::ContainerTopResponse =
-                                serde_json::from_str(text).unwrap();
-                            lines.push((date, top));
-                        }
-                    }
-                    Ok(Tops {
                         container_name: name.to_owned(),
                         lines,
                     })
