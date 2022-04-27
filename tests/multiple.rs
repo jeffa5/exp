@@ -52,7 +52,7 @@ impl Experiment for ExpA {
                 capabilities: None,
                 cpus: None,
                 memory: None,
-                pull: false,
+                pull: true,
                 tmpfs: Vec::new(),
                 volumes: Vec::new(),
             })
