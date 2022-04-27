@@ -22,12 +22,12 @@ pub trait Experiment {
     fn configurations(&self) -> Vec<Self::Configuration>;
     fn name(&self) -> &str;
 
-    async fn pre_run(&self, configuration: &Self::Configuration);
-    async fn run(&self, configuration: &Self::Configuration, repeat_dir: PathBuf);
-    async fn post_run(&self, configuration: &Self::Configuration);
+    async fn pre_run(&mut self, configuration: &Self::Configuration);
+    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: PathBuf);
+    async fn post_run(&mut self, configuration: &Self::Configuration);
 
     fn analyse(
-        &self,
+        &mut self,
         experiment_dir: PathBuf,
         date: chrono::DateTime<chrono::Utc>,
         environment: Environment,

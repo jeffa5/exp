@@ -23,7 +23,7 @@ pub enum AnalyseError {
 }
 
 pub async fn analyse<E: Experiment>(
-    experiment: &E,
+    experiment: &mut E,
     config: &AnalyseConfig,
 ) -> Result<(), AnalyseError> {
     let mut results_dir = config.results_dir.clone();
@@ -49,7 +49,7 @@ pub async fn analyse<E: Experiment>(
 }
 
 async fn analyse_single<E: Experiment>(
-    experiment: &E,
+    experiment: &mut E,
     date: chrono::DateTime<Utc>,
     dir: &Path,
 ) -> Result<(), AnalyseError> {

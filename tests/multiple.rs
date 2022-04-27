@@ -32,10 +32,10 @@ impl Experiment for ExpA {
     fn configurations(&self) -> Vec<Self::Configuration> {
         self.configurations.clone()
     }
-    async fn pre_run(&self, _: &Self::Configuration) {
+    async fn pre_run(&mut self, _: &Self::Configuration) {
         println!("prerun a")
     }
-    async fn run(&self, _: &Self::Configuration, repeat_dir: PathBuf) {
+    async fn run(&mut self, _: &Self::Configuration, repeat_dir: PathBuf) {
         println!("run a {:?}", repeat_dir);
 
         let mut runner = exp::docker_runner::Runner::new(repeat_dir).await;
@@ -60,12 +60,12 @@ impl Experiment for ExpA {
         tokio::time::sleep(Duration::from_secs(5)).await;
         runner.finish().await;
     }
-    async fn post_run(&self, _: &Self::Configuration) {
+    async fn post_run(&mut self, _: &Self::Configuration) {
         println!("postrun a")
     }
 
     fn analyse(
-        &self,
+        &mut self,
         _exp_dir: PathBuf,
         _date: chrono::DateTime<chrono::Utc>,
         _environment: Environment,
@@ -92,17 +92,17 @@ impl Experiment for ExpA {
 
 #[tokio::test]
 async fn multiple() {
-    let exp = ExpA {
+    let mut exp = ExpA {
         configurations: vec![ExpAConfig {}],
     };
     let results_dir = PathBuf::from("results");
     let run_config = exp::RunConfig {
         results_dir: results_dir.clone(),
     };
-    exp::run(&exp, &run_config).await.unwrap();
+    exp::run(&mut exp, &run_config).await.unwrap();
     let analyse_config = exp::AnalyseConfig {
         results_dir,
         date: None,
     };
-    exp::analyse(&exp, &analyse_config).await.unwrap();
+    exp::analyse(&mut exp, &analyse_config).await.unwrap();
 }
