@@ -59,7 +59,6 @@ impl Experiment for ExpA {
             .await;
         tokio::time::sleep(Duration::from_secs(5)).await;
         runner.finish().await;
-        panic!("todo");
     }
     async fn post_run(&self, _: &Self::Configuration) {
         println!("postrun a")

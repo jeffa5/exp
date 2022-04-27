@@ -190,10 +190,10 @@ impl Runner {
                     Some(stat) = stats.next() => {
                         match stat {
                             Ok(stats) => {
-                                let stat = Stats::from_bollard(stats);
-                                println!("{:?}", stat);
-                                for stat in stat {
-                                    writer.serialize(stat).unwrap();
+                                let stats = Stats::from_bollard(stats);
+                                println!("{:?}", stats);
+                                for stats in stats {
+                                    writer.serialize(stats).unwrap();
                                 }
                             }
                             Err(error) => {
@@ -442,6 +442,7 @@ pub struct Stats {
     pub memory_stats_commitpeakbytes: Option<u64>,
     pub memory_stats_privateworkingset: Option<u64>,
 
+    // TODO: re-enable this
     //     pub blkio_stats_index: u32,
     //     // per blkio_stats_index
     //     pub blkio_stats_io_service_bytes_recursive_major: Option<u64>,
@@ -476,7 +477,8 @@ pub struct Stats {
     //     pub blkio_stats_sectors_recursive_minor: Option<u64>,
     //     pub blkio_stats_sectors_recursive_op: Option<String>,
     //     pub blkio_stats_sectors_recursive_value: Option<u64>,
-    pub cpu_stats_cpu_usage_percpu_usage: Option<Vec<u64>>,
+    // TODO: re-enable this
+    // pub cpu_stats_cpu_usage_percpu_usage: Option<Vec<u64>>,
     pub cpu_stats_cpu_usage_usage_in_usermode: u64,
     pub cpu_stats_cpu_usage_total_usage: u64,
     pub cpu_stats_cpu_usage_usage_in_kernelmode: u64,
@@ -488,7 +490,8 @@ pub struct Stats {
     pub cpu_stats_throttling_data_throttled_periods: u64,
     pub cpu_stats_throttling_data_throttled_time: u64,
 
-    pub precpu_stats_cpu_usage_percpu_usage: Option<Vec<u64>>,
+    // TODO: re-enable this
+    // pub precpu_stats_cpu_usage_percpu_usage: Option<Vec<u64>>,
     pub precpu_stats_cpu_usage_usage_in_usermode: u64,
     pub precpu_stats_cpu_usage_total_usage: u64,
     pub precpu_stats_cpu_usage_usage_in_kernelmode: u64,
@@ -684,7 +687,7 @@ impl Stats {
             // blkio_stats_sectors_recursive_minor: todo!(),
             // blkio_stats_sectors_recursive_op: todo!(),
             // blkio_stats_sectors_recursive_value: todo!(),
-            cpu_stats_cpu_usage_percpu_usage: cpu_stats.cpu_usage.percpu_usage,
+            // cpu_stats_cpu_usage_percpu_usage: cpu_stats.cpu_usage.percpu_usage,
             cpu_stats_cpu_usage_usage_in_usermode: cpu_stats.cpu_usage.usage_in_usermode,
             cpu_stats_cpu_usage_total_usage: cpu_stats.cpu_usage.total_usage,
             cpu_stats_cpu_usage_usage_in_kernelmode: cpu_stats.cpu_usage.usage_in_kernelmode,
@@ -696,7 +699,7 @@ impl Stats {
                 .throttled_periods,
             cpu_stats_throttling_data_throttled_time: cpu_stats.throttling_data.throttled_time,
 
-            precpu_stats_cpu_usage_percpu_usage: precpu_stats.cpu_usage.percpu_usage,
+            // precpu_stats_cpu_usage_percpu_usage: precpu_stats.cpu_usage.percpu_usage,
             precpu_stats_cpu_usage_usage_in_usermode: precpu_stats.cpu_usage.usage_in_usermode,
             precpu_stats_cpu_usage_total_usage: precpu_stats.cpu_usage.total_usage,
             precpu_stats_cpu_usage_usage_in_kernelmode: precpu_stats.cpu_usage.usage_in_kernelmode,
