@@ -29,7 +29,7 @@ impl Experiment for ExpA {
         "a"
     }
 
-    fn configurations(&self) -> Vec<Self::Configuration> {
+    fn configurations(&mut self) -> Vec<Self::Configuration> {
         self.configurations.clone()
     }
     async fn pre_run(&mut self, _: &Self::Configuration) {

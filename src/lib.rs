@@ -19,7 +19,7 @@ pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
 pub trait Experiment {
     type Configuration: ExperimentConfiguration;
 
-    fn configurations(&self) -> Vec<Self::Configuration>;
+    fn configurations(&mut self) -> Vec<Self::Configuration>;
     fn name(&self) -> &str;
 
     async fn pre_run(&mut self, configuration: &Self::Configuration);
