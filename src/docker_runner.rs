@@ -191,7 +191,7 @@ impl Runner {
                         match stat {
                             Ok(stats) => {
                                 let stat = Stats::from_bollard(stats);
-                                println!("got stats entry");
+                                println!("{:?}", stat);
                                 for stat in stat {
                                     writer.serialize(stat).unwrap();
                                 }
