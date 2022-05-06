@@ -242,10 +242,12 @@ impl Runner {
                                     written_header=true;
                                 }
                                 let now = chrono::Utc::now().timestamp_nanos().to_string();
-                                for process in top.processes .unwrap(){
-                                    let mut process= process;
-                                    process.push(now.clone());
-                                    writer.write_record(process).unwrap();
+                                if let Some(processes) = top.processes {
+                                    for process in processes {
+                                        let mut process = process;
+                                        process.push(now.clone());
+                                        writer.write_record(process).unwrap();
+                                    }
                                 }
                             }
                             Err(error) => {
