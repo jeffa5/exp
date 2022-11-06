@@ -1,7 +1,6 @@
 .direnv
 
 /target
-Cargo.lock
 
 results/
 
