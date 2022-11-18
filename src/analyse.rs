@@ -56,7 +56,7 @@ async fn analyse_single<E: Experiment>(experiment: &mut E, dir: &Path) -> Result
         let config: E::Configuration = serde_json::from_reader(config_file)?;
         configurations.push((config, c));
     }
-    experiment.analyse(dir.to_path_buf(), env, configurations);
+    experiment.analyse(dir, env, configurations);
     Ok(())
 }
 

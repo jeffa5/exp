@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::path::Path;
 
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
@@ -43,12 +44,12 @@ pub trait Experiment {
     fn configurations(&mut self) -> Vec<Self::Configuration>;
 
     async fn pre_run(&mut self, configuration: &Self::Configuration);
-    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: PathBuf);
+    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: &Path);
     async fn post_run(&mut self, configuration: &Self::Configuration);
 
     fn analyse(
         &mut self,
-        experiment_dir: PathBuf,
+        experiment_dir: &Path,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     );

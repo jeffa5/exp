@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::read_dir, path::PathBuf, time::Duration};
+use std::{collections::HashMap, fs::read_dir, path::PathBuf, path::Path, time::Duration};
 
 use async_trait::async_trait;
 use exp::{docker_runner::ContainerConfig, Environment, Experiment, ExperimentConfiguration};
@@ -23,10 +23,10 @@ impl Experiment for ExpA {
     async fn pre_run(&mut self, _: &Self::Configuration) {
         println!("prerun a")
     }
-    async fn run(&mut self, _: &Self::Configuration, repeat_dir: PathBuf) {
+    async fn run(&mut self, _: &Self::Configuration, repeat_dir: &Path) {
         println!("run a {:?}", repeat_dir);
 
-        let mut runner = exp::docker_runner::Runner::new(repeat_dir).await;
+        let mut runner = exp::docker_runner::Runner::new(repeat_dir.to_path_buf()).await;
 
         runner
             .add_container(&ContainerConfig {
@@ -54,7 +54,7 @@ impl Experiment for ExpA {
 
     fn analyse(
         &mut self,
-        _exp_dir: PathBuf,
+        _exp_dir: &Path,
         _environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     error::Error,
-    fs::{create_dir_all, File},
+    fs::{create_dir_all, File, rename},
     io,
     path::{Path, PathBuf},
 };
@@ -65,7 +65,11 @@ async fn run_single<E: Experiment>(
 
     for (i, config) in configurations_to_run.iter().enumerate() {
         let config_dir = create_config_dir(experiment_dir, config)?;
-        let mut config_file = File::create(&config_dir.join("configuration.json"))?;
+        // set up dir for running in, in case of a failure
+        let mut running_dir = config_dir.clone();
+        running_dir.set_extension(".running");
+
+        let mut config_file = File::create(&running_dir.join("configuration.json"))?;
         config.ser_pretty(&mut config_file)?;
         experiment.pre_run(config).await;
         debug!(
@@ -73,8 +77,10 @@ async fn run_single<E: Experiment>(
             i + 1,
             configurations_to_run.len(),
         );
-        experiment.run(config, config_dir).await;
+        experiment.run(config, &running_dir).await;
         experiment.post_run(config).await;
+        // successfully run this experiment, move it to a finished dir
+        rename(running_dir, config_dir)?;
     }
     Ok(())
 }
