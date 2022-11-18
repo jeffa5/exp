@@ -10,17 +10,13 @@ mod run;
 pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
 
-pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
-    fn repeats(&self) -> u32;
-    fn description(&self) -> &str;
-}
+pub trait ExperimentConfiguration: Serialize + DeserializeOwned {}
 
 #[async_trait]
 pub trait Experiment {
     type Configuration: ExperimentConfiguration;
 
     fn configurations(&mut self) -> Vec<Self::Configuration>;
-    fn name(&self) -> &str;
 
     async fn pre_run(&mut self, configuration: &Self::Configuration);
     async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: PathBuf);
@@ -29,7 +25,6 @@ pub trait Experiment {
     fn analyse(
         &mut self,
         experiment_dir: PathBuf,
-        date: chrono::DateTime<chrono::Utc>,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     );

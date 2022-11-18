@@ -3,15 +3,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chrono::Utc;
 use thiserror::Error;
-use tracing::{debug, warn};
+use tracing::warn;
 
 use crate::Experiment;
 
 pub struct AnalyseConfig {
     pub results_dir: PathBuf,
-    pub date: Option<chrono::DateTime<Utc>>,
 }
 
 #[derive(Debug, Error)]
@@ -26,35 +24,13 @@ pub async fn analyse<E: Experiment>(
     experiment: &mut E,
     config: &AnalyseConfig,
 ) -> Result<(), AnalyseError> {
-    let mut results_dir = config.results_dir.clone();
-    let date = if let Some(date) = config.date {
-        results_dir.push(date.to_rfc3339());
-        date
-    } else {
-        let mut dates = std::fs::read_dir(&results_dir)?
-            .filter_map(|d| {
-                d.ok().and_then(|d| {
-                    chrono::DateTime::parse_from_rfc3339(&d.file_name().to_string_lossy()).ok()
-                })
-            })
-            .collect::<Vec<_>>();
-        dates.sort();
-        let d = dates.last().unwrap();
-        results_dir.push(d.to_rfc3339());
-        d.with_timezone(&Utc)
-    };
-    debug!("Using date: {}", date);
-    analyse_single(experiment, date, &results_dir).await?;
+    analyse_single(experiment, &config.results_dir).await?;
     Ok(())
 }
 
-async fn analyse_single<E: Experiment>(
-    experiment: &mut E,
-    date: chrono::DateTime<Utc>,
-    dir: &Path,
-) -> Result<(), AnalyseError> {
+async fn analyse_single<E: Experiment>(experiment: &mut E, dir: &Path) -> Result<(), AnalyseError> {
     if !dir.exists() {
-        warn!("No directory for experiment '{}' exists", experiment.name());
+        warn!("No directory for experiment exists");
         return Ok(());
     }
     let env_file = File::open(dir.join("environment.json"))?;
@@ -80,7 +56,7 @@ async fn analyse_single<E: Experiment>(
         let config: E::Configuration = serde_json::from_reader(config_file)?;
         configurations.push((config, c));
     }
-    experiment.analyse(dir.to_path_buf(), date, env, configurations);
+    experiment.analyse(dir.to_path_buf(), env, configurations);
     Ok(())
 }
 

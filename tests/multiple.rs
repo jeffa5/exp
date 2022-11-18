@@ -7,15 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize)]
 struct ExpAConfig {}
 
-impl ExperimentConfiguration for ExpAConfig {
-    fn repeats(&self) -> u32 {
-        2
-    }
-
-    fn description(&self) -> &str {
-        "exp a"
-    }
-}
+impl ExperimentConfiguration for ExpAConfig {}
 
 struct ExpA {
     configurations: Vec<ExpAConfig>,
@@ -24,10 +16,6 @@ struct ExpA {
 #[async_trait]
 impl Experiment for ExpA {
     type Configuration = ExpAConfig;
-
-    fn name(&self) -> &str {
-        "a"
-    }
 
     fn configurations(&mut self) -> Vec<Self::Configuration> {
         self.configurations.clone()
@@ -67,7 +55,6 @@ impl Experiment for ExpA {
     fn analyse(
         &mut self,
         _exp_dir: PathBuf,
-        _date: chrono::DateTime<chrono::Utc>,
         _environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
@@ -95,14 +82,11 @@ async fn multiple() {
     let mut exp = ExpA {
         configurations: vec![ExpAConfig {}],
     };
-    let results_dir = PathBuf::from("results");
+    let results_dir = PathBuf::from("results/multiple");
     let run_config = exp::RunConfig {
         results_dir: results_dir.clone(),
     };
     exp::run(&mut exp, &run_config).await.unwrap();
-    let analyse_config = exp::AnalyseConfig {
-        results_dir,
-        date: None,
-    };
+    let analyse_config = exp::AnalyseConfig { results_dir };
     exp::analyse(&mut exp, &analyse_config).await.unwrap();
 }
