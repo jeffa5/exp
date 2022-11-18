@@ -41,6 +41,12 @@
             cargoTestCommand = "echo skipping tests";
           }
         );
+        expClippy = craneLib.cargoClippy (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
+          }
+        );
       in rec
       {
         packages = {
@@ -49,7 +55,7 @@
         };
 
         checks = {
-          inherit exp;
+          inherit expClippy;
         };
 
         formatter = pkgs.alejandra;
