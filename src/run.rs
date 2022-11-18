@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
-    fs::{create_dir_all, File},
+    error::Error,
+    fs::{create_dir_all, rename, File},
     io,
     path::{Path, PathBuf},
 };
@@ -10,7 +11,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::debug;
 
-use crate::{Experiment, ExperimentConfiguration};
+use crate::Experiment;
+use crate::ExperimentConfiguration;
 
 #[derive(Debug, Error)]
 pub enum RunError {
@@ -18,6 +20,8 @@ pub enum RunError {
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
+    #[error(transparent)]
+    Other(#[from] Box<dyn Error>),
 }
 
 pub struct RunConfig {
@@ -36,30 +40,69 @@ async fn run_single<E: Experiment>(
     experiment: &mut E,
     experiment_dir: &Path,
 ) -> Result<(), RunError> {
-    collect_environment_data(&experiment_dir);
+    collect_environment_data(experiment_dir);
 
     let configurations = experiment.configurations();
-    let width = configurations.len().to_string().len();
-    for (i, config) in configurations.iter().enumerate() {
-        let config_dir = create_config_dir(&experiment_dir, i, width)?;
-        let config_file = File::create(&config_dir.join("configuration.json"))?;
-        serde_json::to_writer_pretty(config_file, &config)?;
-        experiment.pre_run(&config).await;
-        let repeats = config.repeats();
-        let width = repeats.to_string().len();
-        for j in 0..repeats {
-            debug!(
-                "Running configuration {}/{}, repeat {}/{}",
-                i + 1,
-                configurations.len(),
-                j + 1,
-                repeats
-            );
-            let repeat_dir = create_repeat_dir(&config_dir, j as usize, width)?;
-            experiment.run(config, repeat_dir).await;
+    let total_configurations = configurations.len();
+
+    // for each configuration, build the directories they would make
+    // if the directories exist then skip this dir
+    let mut configurations_to_run = Vec::new();
+    for configuration in configurations {
+        let config_path = build_config_dir(experiment_dir, &configuration)?;
+        if config_path.exists() {
+            debug!(?config_path, "Config directory exists, skipping config");
         }
-        experiment.post_run(&config).await;
+        configurations_to_run.push(configuration);
     }
+
+    let skipped_configs = total_configurations - configurations_to_run.len();
+    debug!(
+        pre_completed = skipped_configs,
+        remaining = configurations_to_run.len(),
+        "Finished skipping pre-completed configurations, running remaining"
+    );
+
+    for (i, config) in configurations_to_run.iter().enumerate() {
+        let config_dir = build_config_dir(experiment_dir, config)?;
+        // set up dir for running in, in case of a failure
+        let mut running_dir = config_dir.clone();
+        running_dir.set_extension(".running");
+
+        debug!(path = ?running_dir, "Creating running dir");
+        create_dir_all(&running_dir)?;
+
+        debug!(
+            "Running configuration {}/{}",
+            i + 1,
+            configurations_to_run.len(),
+        );
+        match run_configuration(&running_dir, experiment, config).await {
+            Ok(()) => {
+                // successfully run this experiment, move it to a finished dir
+                rename(running_dir, config_dir)?;
+            }
+            Err(_) => {
+                // unsuccessfully run this experiment, move it to an error dir
+                let mut error_dir = config_dir.clone();
+                error_dir.set_extension(".failed");
+                rename(running_dir, error_dir)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+async fn run_configuration<E: Experiment>(
+    dir: &Path,
+    experiment: &mut E,
+    config: &E::Configuration,
+) -> Result<(), Box<dyn Error>> {
+    let mut config_file = File::create(&dir.join("configuration.json"))?;
+    config.ser_pretty(&mut config_file)?;
+    experiment.pre_run(config).await?;
+    experiment.run(config, &dir).await?;
+    experiment.post_run(config).await?;
     Ok(())
 }
 
@@ -91,29 +134,24 @@ fn collect_environment_data(path: &Path) {
         cpu_vendor_id: cpuinfo.vendor_id(0).unwrap().to_owned(),
         cpu_cores: cpuinfo.num_cores(),
         mem_info: meminfo,
-        kernel_config: kernel_config().unwrap(),
+        kernel_config: kernel_config().unwrap_or_default(),
     };
     let env_file = File::create(path.join("environment.json")).unwrap();
     serde_json::to_writer_pretty(env_file, &env).unwrap();
 }
 
 fn create_experiment_dir(results_dir: &Path) -> Result<PathBuf, io::Error> {
-    let exp_path = results_dir.join(chrono::Utc::now().to_rfc3339());
+    let exp_path = results_dir.to_owned();
     debug!(path = ?exp_path, "Creating experiments directory");
     create_dir_all(&exp_path)?;
     Ok(exp_path)
 }
 
-fn create_config_dir(parent: &Path, i: usize, width: usize) -> Result<PathBuf, io::Error> {
-    let config_path = parent.join(format!("configuration-{:0>width$}", i + 1, width = width));
-    debug!(path = ?config_path, "Creating config directory");
-    create_dir_all(&config_path)?;
+fn build_config_dir<C: ExperimentConfiguration>(
+    parent: &Path,
+    configuration: &C,
+) -> Result<PathBuf, Box<dyn Error>> {
+    let config_hash = configuration.hash()?;
+    let config_path = parent.join(config_hash);
     Ok(config_path)
-}
-
-fn create_repeat_dir(parent: &Path, i: usize, width: usize) -> Result<PathBuf, io::Error> {
-    let repeat_path = parent.join(format!("repeat-{:0>width$}", i + 1, width = width));
-    debug!(path = ?repeat_path, "Creating repeat directory");
-    create_dir_all(&repeat_path)?;
-    Ok(repeat_path)
 }

@@ -1,7 +1,9 @@
+use std::path::Path;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
+use std::error::Error;
 
 mod analyse;
 pub mod docker_runner;
@@ -11,8 +13,28 @@ pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
 
 pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
-    fn repeats(&self) -> u32;
-    fn description(&self) -> &str;
+    /// Calculate the hash of the serialized version of this config.
+    fn hash(&self) -> Result<String, Box<dyn Error>> {
+        let mut v = Vec::new();
+        self.ser(&mut v)?;
+        let config_hash = blake3::hash(&v).to_hex();
+        Ok(config_hash.to_string())
+    }
+
+    fn ser<W: std::io::Write>(&self, w: W) -> Result<(), Box<dyn Error>> {
+        serde_json::to_writer(w, self)?;
+        Ok(())
+    }
+
+    fn ser_pretty<W: std::io::Write>(&self, w: W) -> Result<(), Box<dyn Error>> {
+        serde_json::to_writer_pretty(w, self)?;
+        Ok(())
+    }
+
+    fn deser<R: std::io::Read>(r: R) -> Result<Self, Box<dyn Error>> {
+        let conf = serde_json::from_reader(r)?;
+        Ok(conf)
+    }
 }
 
 #[async_trait]
@@ -20,16 +42,19 @@ pub trait Experiment {
     type Configuration: ExperimentConfiguration;
 
     fn configurations(&mut self) -> Vec<Self::Configuration>;
-    fn name(&self) -> &str;
 
-    async fn pre_run(&mut self, configuration: &Self::Configuration);
-    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: PathBuf);
-    async fn post_run(&mut self, configuration: &Self::Configuration);
+    async fn pre_run(&mut self, configuration: &Self::Configuration) -> Result<(), Box<dyn Error>>;
+    async fn run(
+        &mut self,
+        configuration: &Self::Configuration,
+        repeat_dir: &Path,
+    ) -> Result<(), Box<dyn Error>>;
+    async fn post_run(&mut self, configuration: &Self::Configuration)
+        -> Result<(), Box<dyn Error>>;
 
     fn analyse(
         &mut self,
-        experiment_dir: PathBuf,
-        date: chrono::DateTime<chrono::Utc>,
+        experiment_dir: &Path,
         environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     );
