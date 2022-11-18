@@ -43,9 +43,14 @@ pub trait Experiment {
 
     fn configurations(&mut self) -> Vec<Self::Configuration>;
 
-    async fn pre_run(&mut self, configuration: &Self::Configuration);
-    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: &Path);
-    async fn post_run(&mut self, configuration: &Self::Configuration);
+    async fn pre_run(&mut self, configuration: &Self::Configuration) -> Result<(), Box<dyn Error>>;
+    async fn run(
+        &mut self,
+        configuration: &Self::Configuration,
+        repeat_dir: &Path,
+    ) -> Result<(), Box<dyn Error>>;
+    async fn post_run(&mut self, configuration: &Self::Configuration)
+        -> Result<(), Box<dyn Error>>;
 
     fn analyse(
         &mut self,

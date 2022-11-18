@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fs::read_dir, path::Path, path::PathBuf, time::Duration};
+use std::{
+    collections::HashMap, error::Error, fs::read_dir, path::Path, path::PathBuf, time::Duration,
+};
 
 use async_trait::async_trait;
 use exp::{docker_runner::ContainerConfig, Environment, Experiment, ExperimentConfiguration};
@@ -20,10 +22,15 @@ impl Experiment for ExpA {
     fn configurations(&mut self) -> Vec<Self::Configuration> {
         self.configurations.clone()
     }
-    async fn pre_run(&mut self, _: &Self::Configuration) {
-        println!("prerun a")
+    async fn pre_run(&mut self, _: &Self::Configuration) -> Result<(), Box<dyn Error>> {
+        println!("prerun a");
+        Ok(())
     }
-    async fn run(&mut self, _: &Self::Configuration, repeat_dir: &Path) {
+    async fn run(
+        &mut self,
+        _: &Self::Configuration,
+        repeat_dir: &Path,
+    ) -> Result<(), Box<dyn Error>> {
         println!("run a {:?}", repeat_dir);
 
         let mut runner = exp::docker_runner::Runner::new(repeat_dir.to_path_buf()).await;
@@ -47,9 +54,11 @@ impl Experiment for ExpA {
             .await;
         tokio::time::sleep(Duration::from_secs(5)).await;
         runner.finish().await;
+        Ok(())
     }
-    async fn post_run(&mut self, _: &Self::Configuration) {
-        println!("postrun a")
+    async fn post_run(&mut self, _: &Self::Configuration) -> Result<(), Box<dyn Error>> {
+        println!("postrun a");
+        Ok(())
     }
 
     fn analyse(

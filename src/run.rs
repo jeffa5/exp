@@ -100,9 +100,9 @@ async fn run_configuration<E: Experiment>(
 ) -> Result<(), Box<dyn Error>> {
     let mut config_file = File::create(&dir.join("configuration.json"))?;
     config.ser_pretty(&mut config_file)?;
-    experiment.pre_run(config).await;
-    experiment.run(config, &dir).await;
-    experiment.post_run(config).await;
+    experiment.pre_run(config).await?;
+    experiment.run(config, &dir).await?;
+    experiment.post_run(config).await?;
     Ok(())
 }
 
@@ -153,15 +153,5 @@ fn build_config_dir<C: ExperimentConfiguration>(
 ) -> Result<PathBuf, Box<dyn Error>> {
     let config_hash = configuration.hash()?;
     let config_path = parent.join(config_hash);
-    Ok(config_path)
-}
-
-fn create_config_dir<C: ExperimentConfiguration>(
-    parent: &Path,
-    configuration: &C,
-) -> Result<PathBuf, RunError> {
-    let config_path = build_config_dir(parent, configuration)?;
-    debug!(path = ?config_path, "Checking for config directory");
-    create_dir_all(&config_path)?;
     Ok(config_path)
 }
