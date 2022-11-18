@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::read_dir, path::PathBuf, path::Path, time::Duration};
+use std::{collections::HashMap, fs::read_dir, path::Path, path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
 use exp::{docker_runner::ContainerConfig, Environment, Experiment, ExperimentConfiguration};

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     error::Error,
-    fs::{create_dir_all, File, rename},
+    fs::{create_dir_all, rename, File},
     io,
     path::{Path, PathBuf},
 };
@@ -64,24 +64,45 @@ async fn run_single<E: Experiment>(
     );
 
     for (i, config) in configurations_to_run.iter().enumerate() {
-        let config_dir = create_config_dir(experiment_dir, config)?;
+        let config_dir = build_config_dir(experiment_dir, config)?;
         // set up dir for running in, in case of a failure
         let mut running_dir = config_dir.clone();
         running_dir.set_extension(".running");
 
-        let mut config_file = File::create(&running_dir.join("configuration.json"))?;
-        config.ser_pretty(&mut config_file)?;
-        experiment.pre_run(config).await;
+        debug!(path = ?running_dir, "Creating running dir");
+        create_dir_all(&running_dir)?;
+
         debug!(
             "Running configuration {}/{}",
             i + 1,
             configurations_to_run.len(),
         );
-        experiment.run(config, &running_dir).await;
-        experiment.post_run(config).await;
-        // successfully run this experiment, move it to a finished dir
-        rename(running_dir, config_dir)?;
+        match run_configuration(&running_dir, experiment, config).await {
+            Ok(()) => {
+                // successfully run this experiment, move it to a finished dir
+                rename(running_dir, config_dir)?;
+            }
+            Err(_) => {
+                // unsuccessfully run this experiment, move it to an error dir
+                let mut error_dir = config_dir.clone();
+                error_dir.set_extension(".failed");
+                rename(running_dir, error_dir)?;
+            }
+        }
     }
+    Ok(())
+}
+
+async fn run_configuration<E: Experiment>(
+    dir: &Path,
+    experiment: &mut E,
+    config: &E::Configuration,
+) -> Result<(), Box<dyn Error>> {
+    let mut config_file = File::create(&dir.join("configuration.json"))?;
+    config.ser_pretty(&mut config_file)?;
+    experiment.pre_run(config).await;
+    experiment.run(config, &dir).await;
+    experiment.post_run(config).await;
     Ok(())
 }
 
