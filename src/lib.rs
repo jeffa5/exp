@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
+use std::error::Error;
 
 mod analyse;
 pub mod docker_runner;
@@ -10,7 +11,30 @@ mod run;
 pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
 
-pub trait ExperimentConfiguration: Serialize + DeserializeOwned {}
+pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
+    /// Calculate the hash of the serialized version of this config.
+    fn hash(&self) -> Result<String, Box<dyn Error>> {
+        let mut v = Vec::new();
+        self.ser(&mut v)?;
+        let config_hash = blake3::hash(&v).to_hex();
+        Ok(config_hash.to_string())
+    }
+
+    fn ser<W: std::io::Write>(&self, w: W) -> Result<(), Box<dyn Error>> {
+        serde_json::to_writer(w, self)?;
+        Ok(())
+    }
+
+    fn ser_pretty<W: std::io::Write>(&self, w: W) -> Result<(), Box<dyn Error>> {
+        serde_json::to_writer_pretty(w, self)?;
+        Ok(())
+    }
+
+    fn deser<R: std::io::Read>(r: R) -> Result<Self, Box<dyn Error>> {
+        let conf = serde_json::from_reader(r)?;
+        Ok(conf)
+    }
+}
 
 #[async_trait]
 pub trait Experiment {

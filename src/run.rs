@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    error::Error,
     fs::{create_dir_all, File},
     io,
     path::{Path, PathBuf},
@@ -19,6 +20,8 @@ pub enum RunError {
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
+    #[error(transparent)]
+    Other(#[from] Box<dyn Error>),
 }
 
 pub struct RunConfig {
@@ -46,7 +49,7 @@ async fn run_single<E: Experiment>(
     // if the directories exist then skip this dir
     let mut configurations_to_run = Vec::new();
     for configuration in configurations {
-        let config_path = build_config_dir(experiment_dir, &configuration);
+        let config_path = build_config_dir(experiment_dir, &configuration)?;
         if config_path.exists() {
             debug!(?config_path, "Config directory exists, skipping config");
         }
@@ -62,8 +65,8 @@ async fn run_single<E: Experiment>(
 
     for (i, config) in configurations_to_run.iter().enumerate() {
         let config_dir = create_config_dir(experiment_dir, config)?;
-        let config_file = File::create(&config_dir.join("configuration.json"))?;
-        serde_json::to_writer_pretty(config_file, &config)?;
+        let mut config_file = File::create(&config_dir.join("configuration.json"))?;
+        config.ser_pretty(&mut config_file)?;
         experiment.pre_run(config).await;
         debug!(
             "Running configuration {}/{}",
@@ -117,18 +120,20 @@ fn create_experiment_dir(results_dir: &Path) -> Result<PathBuf, io::Error> {
     Ok(exp_path)
 }
 
-fn build_config_dir<C: ExperimentConfiguration>(parent: &Path, configuration: &C) -> PathBuf {
-    let json_config = serde_json::to_vec(configuration).unwrap();
-    let config_hash = blake3::hash(&json_config).to_hex();
-    let config_path = parent.join(config_hash.as_str());
-    config_path
+fn build_config_dir<C: ExperimentConfiguration>(
+    parent: &Path,
+    configuration: &C,
+) -> Result<PathBuf, Box<dyn Error>> {
+    let config_hash = configuration.hash()?;
+    let config_path = parent.join(config_hash);
+    Ok(config_path)
 }
 
 fn create_config_dir<C: ExperimentConfiguration>(
     parent: &Path,
     configuration: &C,
-) -> Result<PathBuf, io::Error> {
-    let config_path = build_config_dir(parent, configuration);
+) -> Result<PathBuf, RunError> {
+    let config_path = build_config_dir(parent, configuration)?;
     debug!(path = ?config_path, "Checking for config directory");
     create_dir_all(&config_path)?;
     Ok(config_path)
