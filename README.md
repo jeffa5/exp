@@ -19,20 +19,20 @@ to analyse.
 _exp_ needs to store data from each experiment run.
 
 ```
-experiments/
-  <datetime>/
-    <experiment1-name>/
-      environment.json
-      configuration-1/
-        configuration.json
-        repeat-1/
-          logs/ # collected by harness
-          metrics/ # collected by harness
-          data/ # collected by you
-        repeat-2/
-          ...
-      analysis/
-        ...
-    <experiment2-name>/
+results/
+  <experiment1-name>/
+    environment.json
+    <hash>/
+      configuration.json
+      logs/ # collected by harness
+      metrics/ # collected by harness
+      data/ # collected by you
+    <hash>.running/
       ...
+    <hash>.failed/
+      ...
+    analysis/
+      ...
+  <experiment2-name>/
+    ...
 ```
