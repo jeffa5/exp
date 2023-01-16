@@ -1,9 +1,9 @@
-use std::{
-    collections::HashMap, error::Error, fs::read_dir, path::Path, path::PathBuf, time::Duration,
-};
+use std::{collections::HashMap, fs::read_dir, path::Path, path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use exp::{docker_runner::ContainerConfig, Environment, Experiment, ExperimentConfiguration};
+use exp::{
+    docker_runner::ContainerConfig, Environment, ExpResult, Experiment, ExperimentConfiguration,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -22,15 +22,11 @@ impl Experiment for ExpA {
     fn configurations(&mut self) -> Vec<Self::Configuration> {
         self.configurations.clone()
     }
-    async fn pre_run(&mut self, _: &Self::Configuration) -> Result<(), Box<dyn Error>> {
+    async fn pre_run(&mut self, _: &Self::Configuration) -> ExpResult<()> {
         println!("prerun a");
         Ok(())
     }
-    async fn run(
-        &mut self,
-        _: &Self::Configuration,
-        repeat_dir: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn run(&mut self, _: &Self::Configuration, repeat_dir: &Path) -> ExpResult<()> {
         println!("run a {:?}", repeat_dir);
 
         let mut runner = exp::docker_runner::Runner::new(repeat_dir.to_path_buf()).await;
@@ -56,7 +52,7 @@ impl Experiment for ExpA {
         runner.finish().await;
         Ok(())
     }
-    async fn post_run(&mut self, _: &Self::Configuration) -> Result<(), Box<dyn Error>> {
+    async fn post_run(&mut self, _: &Self::Configuration) -> ExpResult<()> {
         println!("postrun a");
         Ok(())
     }
