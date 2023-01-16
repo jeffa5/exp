@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::debug;
 
+use crate::ExpResult;
 use crate::Experiment;
 use crate::ExperimentConfiguration;
 
@@ -21,7 +22,7 @@ pub enum RunError {
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error(transparent)]
-    Other(#[from] Box<dyn Error + Send>),
+    Other(#[from] Box<dyn Error + Send + Sync>),
 }
 
 pub struct RunConfig {
@@ -97,11 +98,11 @@ async fn run_configuration<E: Experiment>(
     dir: &Path,
     experiment: &mut E,
     config: &E::Configuration,
-) -> Result<(), Box<dyn Error>> {
-    let mut config_file = File::create(&dir.join("configuration.json"))?;
+) -> ExpResult<()> {
+    let mut config_file = File::create(dir.join("configuration.json"))?;
     config.ser_pretty(&mut config_file)?;
     experiment.pre_run(config).await?;
-    experiment.run(config, &dir).await?;
+    experiment.run(config, dir).await?;
     experiment.post_run(config).await?;
     Ok(())
 }
@@ -150,7 +151,7 @@ fn create_experiment_dir(results_dir: &Path) -> Result<PathBuf, io::Error> {
 fn build_config_dir<C: ExperimentConfiguration>(
     parent: &Path,
     configuration: &C,
-) -> Result<PathBuf, Box<dyn Error>> {
+) -> Result<PathBuf, Box<dyn Error + Send + Sync>> {
     let config_hash = configuration.hash()?;
     let config_path = parent.join(config_hash);
     Ok(config_path)

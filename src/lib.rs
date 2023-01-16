@@ -12,7 +12,7 @@ mod run;
 pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
 
-pub type ExpResult<T> = Result<T, Box<dyn Error>>;
+pub type ExpResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
     /// Calculate the hash of the serialized version of this config.
@@ -51,8 +51,7 @@ pub trait Experiment {
         configuration: &Self::Configuration,
         repeat_dir: &Path,
     ) -> ExpResult<()>;
-    async fn post_run(&mut self, configuration: &Self::Configuration)
-        -> ExpResult<()>;
+    async fn post_run(&mut self, configuration: &Self::Configuration) -> ExpResult<()>;
 
     fn analyse(
         &mut self,

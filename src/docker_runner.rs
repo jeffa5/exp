@@ -72,7 +72,7 @@ impl Runner {
         let logs_dir = create_logs_dir(&self.repeat_dir).expect("Failed to create logs dir");
         let metrics_dir =
             create_metrics_dir(&self.repeat_dir).expect("Failed to create metrics dir");
-        let config_file = File::create(&config_dir.join(format!("docker-{}.json", config.name)))
+        let config_file = File::create(config_dir.join(format!("docker-{}.json", config.name)))
             .expect("Failed to create docker config file");
         serde_json::to_writer_pretty(config_file, &config).expect("Failed to write docker config");
 
@@ -562,7 +562,7 @@ impl Stats {
             }
         });
 
-        let mut networks = networks.iter().map(|v| v.iter()).flatten();
+        let mut networks = networks.iter().flat_map(|v| v.iter());
         // let mut blio_stats = blkio_stats.as_mut().unwrap().iter();
 
         let networks = networks.next();
