@@ -21,7 +21,7 @@ pub enum RunError {
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error(transparent)]
-    Other(#[from] Box<dyn Error>),
+    Other(#[from] Box<dyn Error + Send>),
 }
 
 pub struct RunConfig {
