@@ -62,7 +62,7 @@
 
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
-            rust
+            (rust.override {extensions = ["rust-src"];})
             cargo-watch
             cargo-udeps
             cargo-insta
