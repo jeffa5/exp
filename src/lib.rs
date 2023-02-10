@@ -8,6 +8,9 @@ use std::error::Error;
 mod analyse;
 pub mod docker_runner;
 mod run;
+mod combinations;
+
+pub use combinations::Combinations;
 
 pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
