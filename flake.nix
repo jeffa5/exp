@@ -47,7 +47,7 @@
             inherit cargoArtifacts;
           }
         );
-      in rec
+      in
       {
         packages = {
           inherit exp;
@@ -61,7 +61,7 @@
         formatter = pkgs.alejandra;
 
         devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
+          packages = with pkgs; [
             (rust.override {extensions = ["rust-src"];})
             cargo-watch
             cargo-udeps
@@ -69,7 +69,8 @@
             rust-analyzer
             cargo-outdated
 
-            rnix-lsp
+            maturin
+            python3
           ];
         };
       }
