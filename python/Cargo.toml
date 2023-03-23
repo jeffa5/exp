@@ -9,5 +9,6 @@ name = "exp"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.16.5", features = ["extension-module"] }
+pyo3 = { version = "0.18", features = ["extension-module"] }
+pyo3-asyncio = { version = "0.18", features = ["tokio-runtime"] }
 exp = {path = "../"}
