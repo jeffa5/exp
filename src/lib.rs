@@ -7,6 +7,7 @@ use std::error::Error;
 
 mod analyse;
 pub mod docker_runner;
+pub mod monitor;
 mod run;
 
 pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
