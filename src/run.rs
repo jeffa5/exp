@@ -53,6 +53,7 @@ async fn run_single<E: Experiment>(
         let config_path = build_config_dir(experiment_dir, &configuration)?;
         if config_path.exists() {
             debug!(?config_path, "Config directory exists, skipping config");
+            continue;
         }
         configurations_to_run.push(configuration);
     }
