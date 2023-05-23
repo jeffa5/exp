@@ -39,13 +39,7 @@ async fn analyse_single<E: Experiment>(experiment: &mut E, dir: &Path) -> Result
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        if path.is_dir()
-            && path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .starts_with("configuration-")
-        {
+        if path.is_dir() {
             configuration_dirs.push(path)
         }
     }
