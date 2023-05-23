@@ -69,7 +69,7 @@ async fn run_single<E: Experiment>(
         let config_dir = build_config_dir(experiment_dir, config)?;
         // set up dir for running in, in case of a failure
         let mut running_dir = config_dir.clone();
-        running_dir.set_extension(".running");
+        running_dir.set_extension("running");
 
         debug!(path = ?running_dir, "Creating running dir");
         create_dir_all(&running_dir)?;
@@ -87,7 +87,7 @@ async fn run_single<E: Experiment>(
             Err(_) => {
                 // unsuccessfully run this experiment, move it to an error dir
                 let mut error_dir = config_dir.clone();
-                error_dir.set_extension(".failed");
+                error_dir.set_extension("failed");
                 rename(running_dir, error_dir)?;
             }
         }
