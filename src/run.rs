@@ -9,7 +9,7 @@ use std::{
 use procfs::{kernel_config, ConfigSetting, CpuInfo, Meminfo};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::ExpResult;
 use crate::Experiment;
@@ -31,7 +31,7 @@ pub struct RunConfig {
 
 pub async fn run<E: Experiment>(experiment: &mut E, config: &RunConfig) -> Result<(), RunError> {
     let exp_path = create_experiment_dir(&config.results_dir)?;
-    debug!(dir=%exp_path.display(), "Running experiment");
+    info!(dir=%exp_path.display(), "Running experiment");
 
     run_single(experiment, &exp_path).await?;
     Ok(())
@@ -74,7 +74,7 @@ async fn run_single<E: Experiment>(
         debug!(path = ?running_dir, "Creating running dir");
         create_dir_all(&running_dir)?;
 
-        debug!(
+        info!(
             hash = %config.hash().unwrap(),
             "Running configuration {}/{}",
             i + 1,
