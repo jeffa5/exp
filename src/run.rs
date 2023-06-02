@@ -75,6 +75,7 @@ async fn run_single<E: Experiment>(
         create_dir_all(&running_dir)?;
 
         debug!(
+            hash = %config.hash().unwrap(),
             "Running configuration {}/{}",
             i + 1,
             configurations_to_run.len(),
