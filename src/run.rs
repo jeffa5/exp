@@ -59,7 +59,7 @@ async fn run_single<E: Experiment>(
     }
 
     let skipped_configs = total_configurations - configurations_to_run.len();
-    debug!(
+    info!(
         pre_completed = skipped_configs,
         remaining = configurations_to_run.len(),
         "Finished skipping pre-completed configurations, running remaining"
