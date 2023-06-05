@@ -5,7 +5,6 @@ to analyse.
 
 ## Running an experiment
 
-- allow repeats
 - various configurations
 - capture logs, metrics, other misc information
 

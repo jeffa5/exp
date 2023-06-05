@@ -31,16 +31,16 @@ pub struct Runner {
     containers: Vec<String>,
     networks: Vec<String>,
     docker: Docker,
-    repeat_dir: PathBuf,
+    config_dir: PathBuf,
     end_tx: tokio::sync::watch::Sender<()>,
     end_rx: tokio::sync::watch::Receiver<()>,
     futures: Vec<JoinHandle<()>>,
 }
 
 impl Runner {
-    pub async fn new(repeat_dir: PathBuf) -> Self {
+    pub async fn new(config_dir: PathBuf) -> Self {
         let config_dir =
-            create_config_dir(&repeat_dir).expect("Failed to create docker config dir");
+            create_config_dir(&config_dir).expect("Failed to create docker config dir");
         let docker = bollard::Docker::connect_with_local_defaults()
             .expect("Failed to connect to docker api");
         let version = docker
@@ -59,7 +59,7 @@ impl Runner {
             containers: Vec::new(),
             networks: Vec::new(),
             docker,
-            repeat_dir,
+            config_dir,
             end_tx,
             end_rx,
             futures: Vec::new(),
@@ -68,10 +68,10 @@ impl Runner {
 
     pub async fn add_container(&mut self, config: &ContainerConfig) {
         let config_dir =
-            create_config_dir(&self.repeat_dir).expect("Failed to create docker config dir");
-        let logs_dir = create_logs_dir(&self.repeat_dir).expect("Failed to create logs dir");
+            create_config_dir(&self.config_dir).expect("Failed to create docker config dir");
+        let logs_dir = create_logs_dir(&self.config_dir).expect("Failed to create logs dir");
         let metrics_dir =
-            create_metrics_dir(&self.repeat_dir).expect("Failed to create metrics dir");
+            create_metrics_dir(&self.config_dir).expect("Failed to create metrics dir");
         let config_file = File::create(config_dir.join(format!("docker-{}.json", config.name)))
             .expect("Failed to create docker config file");
         serde_json::to_writer_pretty(config_file, &config).expect("Failed to write docker config");

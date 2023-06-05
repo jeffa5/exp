@@ -26,10 +26,10 @@ impl Experiment for ExpA {
         println!("prerun a");
         Ok(())
     }
-    async fn run(&mut self, _: &Self::Configuration, repeat_dir: &Path) -> ExpResult<()> {
-        println!("run a {:?}", repeat_dir);
+    async fn run(&mut self, _: &Self::Configuration, conf_dir: &Path) -> ExpResult<()> {
+        println!("run a {:?}", conf_dig);
 
-        let mut runner = exp::docker_runner::Runner::new(repeat_dir.to_path_buf()).await;
+        let mut runner = exp::docker_runner::Runner::new(conf_dig.to_path_buf()).await;
 
         runner
             .add_container(&ContainerConfig {
@@ -63,22 +63,6 @@ impl Experiment for ExpA {
         _environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
-        let mut configs = HashMap::new();
-        for (i, (_config, config_dir)) in configurations.iter().enumerate() {
-            let mut repeats = HashMap::new();
-            for (i, repeat_dir) in exp::repeat_dirs(config_dir).unwrap().iter().enumerate() {
-                // get logs, stats and top for each container
-                let mut logs = HashMap::new();
-                for log_file in read_dir(repeat_dir.join("logs")).unwrap() {
-                    if let Ok(log) = exp::docker_runner::Logs::from_file(&log_file.unwrap().path())
-                    {
-                        logs.insert(log.container_name.clone(), log);
-                    }
-                }
-                repeats.insert(i, logs);
-            }
-            configs.insert(i, repeats);
-        }
     }
 }
 

@@ -10,7 +10,7 @@ pub mod docker_runner;
 pub mod monitor;
 mod run;
 
-pub use analyse::{analyse, repeat_dirs, AnalyseConfig, AnalyseError};
+pub use analyse::{analyse, AnalyseConfig, AnalyseError};
 pub use run::{run, Environment, RunConfig, RunError};
 
 pub type ExpResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
@@ -50,7 +50,7 @@ pub trait Experiment {
     async fn run(
         &mut self,
         configuration: &Self::Configuration,
-        repeat_dir: &Path,
+        configuration_dir: &Path,
     ) -> ExpResult<()>;
     async fn post_run(&mut self, configuration: &Self::Configuration) -> ExpResult<()>;
 

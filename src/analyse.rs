@@ -53,22 +53,3 @@ async fn analyse_single<E: Experiment>(experiment: &mut E, dir: &Path) -> Result
     experiment.analyse(dir, env, configurations);
     Ok(())
 }
-
-pub fn repeat_dirs(path: &Path) -> std::io::Result<Vec<PathBuf>> {
-    let mut paths = Vec::new();
-    for entry in std::fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir()
-            && path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .starts_with("repeat-")
-        {
-            paths.push(path)
-        }
-    }
-    paths.sort();
-    Ok(paths)
-}
