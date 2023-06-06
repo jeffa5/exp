@@ -44,16 +44,17 @@ async fn run_single<E: Experiment>(
     collect_environment_data(experiment_dir);
 
     let configurations = experiment.configurations();
-    let total_configurations = configurations.len();
 
     // for each configuration, build the directories they would make
     // if the directories exist then skip this dir
     let mut configurations_to_run = HashSet::new();
     let mut duplicate_configurations = 0;
+    let mut skipped_configurations = 0;
     for configuration in configurations {
         let config_path = build_config_dir(experiment_dir, &configuration)?;
         if config_path.exists() {
             debug!(?config_path, "Config directory exists, skipping config");
+            skipped_configurations += 1;
             continue;
         }
         if !configurations_to_run.insert(configuration) {
@@ -61,9 +62,8 @@ async fn run_single<E: Experiment>(
         }
     }
 
-    let skipped_configs = total_configurations - configurations_to_run.len();
     info!(
-        skipped = skipped_configs,
+        skipped = skipped_configurations,
         duplicates = duplicate_configurations,
         remaining = configurations_to_run.len(),
         "Finished skipping pre-completed configurations, running remaining"
