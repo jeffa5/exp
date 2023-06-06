@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::read_dir, path::Path, path::PathBuf, time::Duration};
+use std::{path::Path, path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
 use exp::{
@@ -6,7 +6,7 @@ use exp::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 struct ExpAConfig {}
 
 impl ExperimentConfiguration for ExpAConfig {}
@@ -27,9 +27,9 @@ impl Experiment for ExpA {
         Ok(())
     }
     async fn run(&mut self, _: &Self::Configuration, conf_dir: &Path) -> ExpResult<()> {
-        println!("run a {:?}", conf_dig);
+        println!("run a {:?}", conf_dir);
 
-        let mut runner = exp::docker_runner::Runner::new(conf_dig.to_path_buf()).await;
+        let mut runner = exp::docker_runner::Runner::new(conf_dir.to_path_buf()).await;
 
         runner
             .add_container(&ContainerConfig {
@@ -61,7 +61,7 @@ impl Experiment for ExpA {
         &mut self,
         _exp_dir: &Path,
         _environment: Environment,
-        configurations: Vec<(Self::Configuration, PathBuf)>,
+        _configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
     }
 }

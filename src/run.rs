@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     error::Error,
     fs::{create_dir_all, rename, File},
     io,
@@ -48,19 +48,23 @@ async fn run_single<E: Experiment>(
 
     // for each configuration, build the directories they would make
     // if the directories exist then skip this dir
-    let mut configurations_to_run = Vec::new();
+    let mut configurations_to_run = HashSet::new();
+    let mut duplicate_configurations = 0;
     for configuration in configurations {
         let config_path = build_config_dir(experiment_dir, &configuration)?;
         if config_path.exists() {
             debug!(?config_path, "Config directory exists, skipping config");
             continue;
         }
-        configurations_to_run.push(configuration);
+        if !configurations_to_run.insert(configuration) {
+            duplicate_configurations += 1;
+        }
     }
 
     let skipped_configs = total_configurations - configurations_to_run.len();
     info!(
         skipped = skipped_configs,
+        duplicates = duplicate_configurations,
         remaining = configurations_to_run.len(),
         "Finished skipping pre-completed configurations, running remaining"
     );
@@ -75,7 +79,7 @@ async fn run_single<E: Experiment>(
         create_dir_all(&running_dir)?;
 
         info!(
-            hash = %config.hash().unwrap(),
+            hash = %config.hash_serialized().unwrap(),
             "Running configuration {}/{}",
             i + 1,
             configurations_to_run.len(),
@@ -154,7 +158,7 @@ fn build_config_dir<C: ExperimentConfiguration>(
     parent: &Path,
     configuration: &C,
 ) -> Result<PathBuf, Box<dyn Error + Send + Sync>> {
-    let config_hash = configuration.hash()?;
+    let config_hash = configuration.hash_serialized()?;
     let config_path = parent.join(config_hash);
     Ok(config_path)
 }

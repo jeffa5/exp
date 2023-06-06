@@ -15,9 +15,9 @@ pub use run::{run, Environment, RunConfig, RunError};
 
 pub type ExpResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
-pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
+pub trait ExperimentConfiguration: Serialize + DeserializeOwned + std::hash::Hash  + Eq{
     /// Calculate the hash of the serialized version of this config.
-    fn hash(&self) -> ExpResult<String> {
+    fn hash_serialized(&self) -> ExpResult<String> {
         let mut v = Vec::new();
         self.ser(&mut v)?;
         let config_hash = blake3::hash(&v).to_hex();
