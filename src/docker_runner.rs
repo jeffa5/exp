@@ -279,7 +279,7 @@ impl Runner {
                 .stop_container(
                     &container,
                     Some(StopContainerOptions {
-                        t: 1, // seconds until kill
+                        t: 0, // seconds until kill
                     }),
                 )
                 .await;
