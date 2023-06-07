@@ -39,8 +39,6 @@ pub struct Runner {
 
 impl Runner {
     pub async fn new(config_dir: PathBuf) -> Self {
-        let config_dir =
-            create_config_dir(&config_dir).expect("Failed to create docker config dir");
         let docker = bollard::Docker::connect_with_local_defaults()
             .expect("Failed to connect to docker api");
         let version = docker
