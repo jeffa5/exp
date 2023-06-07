@@ -750,6 +750,7 @@ pub struct ContainerConfig {
     pub network: Option<String>,
     pub network_subnet: Option<String>,
     pub command: Option<Vec<String>>,
+    pub env: Option<Vec<String>>,
     pub ports: Option<Vec<(String, String)>>,
     pub capabilities: Option<Vec<String>>,
     pub cpus: Option<f64>,
@@ -822,6 +823,7 @@ impl ContainerConfig {
                 mounts: Some(mounts),
                 ..Default::default()
             }),
+            env: self.env.clone(),
             ..Default::default()
         }
     }

@@ -39,6 +39,7 @@ impl Experiment for ExpA {
                 network: Some("exp-test-net".to_owned()),
                 network_subnet: None,
                 command: None,
+                env: None,
                 ports: Some(vec![("90".to_owned(), "80".to_owned())]),
                 capabilities: None,
                 cpus: None,
