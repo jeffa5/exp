@@ -307,6 +307,21 @@ impl Runner {
         }
     }
 
+    pub async fn execute_command(&self, container_name: &str, command: Vec<&str>) {
+        let exec = self
+            .docker
+            .create_exec(
+                container_name,
+                bollard::exec::CreateExecOptions {
+                    cmd: Some(command),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        self.docker.start_exec(&exec.id, None).await.unwrap();
+    }
+
     pub fn docker_client(&self) -> &Docker {
         &self.docker
     }
