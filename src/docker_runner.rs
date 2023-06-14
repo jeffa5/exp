@@ -1,4 +1,5 @@
 use bollard::container::MemoryStatsStats;
+use bollard::exec::StartExecResults;
 use chrono::DateTime;
 use chrono::Utc;
 use std::{
@@ -307,19 +308,45 @@ impl Runner {
         }
     }
 
-    pub async fn execute_command(&self, container_name: &str, command: Vec<&str>) {
+    pub async fn execute_command(
+        &self,
+        container_name: &str,
+        command: Vec<&str>,
+    ) -> (Vec<String>, Vec<String>) {
         let exec = self
             .docker
             .create_exec(
                 container_name,
                 bollard::exec::CreateExecOptions {
+                    attach_stdout: Some(true),
+                    attach_stderr: Some(true),
                     cmd: Some(command),
                     ..Default::default()
                 },
             )
             .await
             .unwrap();
-        self.docker.start_exec(&exec.id, None).await.unwrap();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        if let StartExecResults::Attached {
+            mut output,
+            input: _,
+        } = self.docker.start_exec(&exec.id, None).await.unwrap()
+        {
+            while let Some(Ok(msg)) = output.next().await {
+                match msg {
+                    bollard::container::LogOutput::StdErr { message } => {
+                        err.push(String::from_utf8(message.to_vec()).unwrap())
+                    }
+                    bollard::container::LogOutput::StdOut { message } => {
+                        out.push(String::from_utf8(message.to_vec()).unwrap())
+                    }
+                    bollard::container::LogOutput::StdIn { message: _ }
+                    | bollard::container::LogOutput::Console { message: _ } => unreachable!(),
+                }
+            }
+        }
+        (out, err)
     }
 
     pub fn docker_client(&self) -> &Docker {
