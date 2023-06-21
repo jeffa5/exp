@@ -4,7 +4,7 @@ use std::{
 };
 
 use thiserror::Error;
-use tracing::warn;
+use tracing::{warn, debug};
 
 use crate::Experiment;
 
@@ -46,7 +46,9 @@ async fn analyse_single<E: Experiment>(experiment: &mut E, dir: &Path) -> Result
     configuration_dirs.sort();
     let mut configurations = Vec::new();
     for c in configuration_dirs {
-        let config_file = File::open(c.join("configuration.json"))?;
+        let config_file_path = c.join("configuration.json");
+        debug!(?config_file_path, "Reading configuration");
+        let config_file = File::open(config_file_path)?;
         let config: E::Configuration = serde_json::from_reader(config_file)?;
         configurations.push((config, c));
     }
