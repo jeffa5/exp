@@ -47,19 +47,23 @@ async fn run_single<E: Experiment>(
 
     // for each configuration, build the directories they would make
     // if the directories exist then skip this dir
-    let mut configurations_to_run = HashSet::new();
+    let mut seen_configuration_hashes = HashSet::new();
+    let mut configurations_to_run = Vec::new();
     let mut duplicate_configurations = 0;
     let mut skipped_configurations = 0;
     for configuration in configurations {
+        let config_hash = configuration.hash_serialized()?;
+        if !seen_configuration_hashes.insert(config_hash) {
+            duplicate_configurations += 1;
+            continue;
+        }
         let config_path = build_config_dir(experiment_dir, &configuration)?;
         if config_path.exists() {
             debug!(?config_path, "Config directory exists, skipping config");
             skipped_configurations += 1;
             continue;
         }
-        if !configurations_to_run.insert(configuration) {
-            duplicate_configurations += 1;
-        }
+        configurations_to_run.push(configuration);
     }
 
     info!(

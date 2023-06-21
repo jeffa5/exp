@@ -15,7 +15,7 @@ pub use run::{run, Environment, RunConfig, RunError};
 
 pub type ExpResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
-pub trait ExperimentConfiguration: Serialize + DeserializeOwned + std::hash::Hash  + Eq{
+pub trait ExperimentConfiguration: Serialize + DeserializeOwned {
     /// Calculate the hash of the serialized version of this config.
     fn hash_serialized(&self) -> ExpResult<String> {
         let mut v = Vec::new();
