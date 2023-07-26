@@ -135,7 +135,6 @@ impl Runner {
 
         let docker = self.docker.clone();
         let name_owned = config.name.to_owned();
-        let mut end_rx_clone = self.end_rx.clone();
         self.futures.push(tokio::spawn(async move {
             let mut logs = docker.logs(
                 &name_owned,
@@ -151,9 +150,6 @@ impl Runner {
                 .expect("Failed to create logs file");
             loop {
                 tokio::select! {
-                    _ = end_rx_clone.changed() => {
-                        break
-                    }
                     Some(item) = logs.next() => {
                         match item {
                             Ok(item) => {
@@ -267,11 +263,6 @@ impl Runner {
     }
 
     pub async fn finish(self) {
-        let r = self.end_tx.send(());
-        if let Err(error) = r {
-            warn!(%error, "Error sending shutdown signal to monitoring tasks")
-        }
-        join_all(self.futures).await;
         for container in self.containers {
             let r = self
                 .docker
@@ -299,6 +290,12 @@ impl Runner {
                 warn!(%error, %container, "Error removing container")
             }
         }
+
+        let r = self.end_tx.send(());
+        if let Err(error) = r {
+            warn!(%error, "Error sending shutdown signal to monitoring tasks")
+        }
+        join_all(self.futures).await;
 
         for network in self.networks {
             let r = self.docker.remove_network(&network).await;
