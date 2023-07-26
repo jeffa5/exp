@@ -264,7 +264,7 @@ impl Runner {
 
     pub async fn finish(self) {
         for container in self.containers {
-            let r = self
+            let _ = self
                 .docker
                 .stop_container(
                     &container,
@@ -273,10 +273,7 @@ impl Runner {
                     }),
                 )
                 .await;
-            if let Err(error) = r {
-                warn!(%error, %container, "Error stopping container")
-            }
-            let r = self
+            let _ = self
                 .docker
                 .remove_container(
                     &container,
@@ -286,9 +283,6 @@ impl Runner {
                     }),
                 )
                 .await;
-            if let Err(error) = r {
-                warn!(%error, %container, "Error removing container")
-            }
         }
 
         let r = self.end_tx.send(());
